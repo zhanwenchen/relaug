@@ -42,8 +42,9 @@ python setup.py build_ext install
 cd ${INSTALL_DIR}
 git clone https://github.com/NVIDIA/apex.git
 cd apex
-git checkout 0c8400aa04f4279b1384ae0633e73d6daf9fead7
-sed '171' setup.py
+git checkout 0c8400aa04f4279b1384ae0633e73d6daf9fead7 # to locate specific line
+mv setup.py setup_old.py
+sed -e '171d' setup_old.py > setup.py # sed/awk don't modify existing files
 # WARNING if you use older Versions of Pytorch (anything below 1.7), you will need a hard reset,
 # as the newer version of apex does require newer pytorch versions. Ignore the hard reset otherwise.
 
