@@ -42,13 +42,13 @@ except ImportError:
 
 def train(cfg, local_rank, distributed, logger):
     debug_print(logger, 'prepare training')
-    model = build_detection_model(cfg) 
+    model = build_detection_model(cfg)
     debug_print(logger, 'end model construction')
 
     # modules that should be always set in eval mode
     # their eval() method should be called after model.train() is called
     eval_modules = (model.rpn, model.backbone, model.roi_heads.box,)
- 
+
     fix_eval_modules(eval_modules)
 
     # NOTE, we slow down the LR of the layers start with the names in slow_heads
@@ -61,7 +61,7 @@ def train(cfg, local_rank, distributed, logger):
     # load pretrain layers to new layers
     load_mapping = {"roi_heads.relation.box_feature_extractor" : "roi_heads.box.feature_extractor",
                     "roi_heads.relation.union_feature_extractor.feature_extractor" : "roi_heads.box.feature_extractor"}
-    
+
     if cfg.MODEL.ATTRIBUTE_ON:
         load_mapping["roi_heads.relation.att_feature_extractor"] = "roi_heads.attribute.feature_extractor"
         load_mapping["roi_heads.relation.union_feature_extractor.att_feature_extractor"] = "roi_heads.attribute.feature_extractor"
@@ -98,7 +98,7 @@ def train(cfg, local_rank, distributed, logger):
     )
     # if there is certain checkpoint in output_dir, load it, else load pretrained detector
     if checkpointer.has_checkpoint():
-        extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT, 
+        extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT,
                                        update_schedule=cfg.SOLVER.UPDATE_SCHEDULE_DURING_LOAD)
         arguments.update(extra_checkpoint_data)
     else:
@@ -158,7 +158,6 @@ def train(cfg, local_rank, distributed, logger):
         # Otherwise apply loss scaling for mixed-precision recipe
         with amp.scale_loss(losses, optimizer) as scaled_losses:
             scaled_losses.backward()
-        
         # add clip_grad_norm from MOTIFS, tracking gradient, used for debug
         verbose = (iteration % cfg.SOLVER.PRINT_GRAD_FREQ) == 0 or print_first_grad # print grad or not
         print_first_grad = False
@@ -202,7 +201,7 @@ def train(cfg, local_rank, distributed, logger):
             logger.info("Start validating")
             val_result = run_val(cfg, model, val_data_loaders, distributed, logger)
             logger.info("Validation Result: %.4f" % val_result)
- 
+
         # scheduler should be called after optimizer.step() in pytorch>=1.1.0
         # https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
         if cfg.SOLVER.SCHEDULE.TYPE == "WarmupReduceLROnPlateau":
