@@ -9,7 +9,6 @@ export INSTALL_DIR=${HOME}
 export DATASET_URL=https://sgg-zhanwen.s3.amazonaws.com/datasets.zip
 export DATASETS_DIR=${HOME}/datasets
 export PROJECT_DIR=${HOME}/relaug
-export LOGDIR=${PROJECT_DIR}/log
 
 
 # TODO: assert that checkpoints and log directories don't exist.
@@ -74,9 +73,7 @@ unzip datasets.zip
 echo "Step 3: Test Training"
 
 cd ${PROJECT_DIR}
-mkdir ${PROJECT_DIR}/checkpoints
 ln -s ${DATASETS_DIR}/pretrained_faster_rcnn ${PROJECT_DIR}/checkpoints
-mkdir ${LOGDIR}
 
 source activate ${ENV_NAME}
 ${PROJECT_DIR}/scripts/install_test.sh
