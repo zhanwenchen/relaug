@@ -41,7 +41,6 @@ error_check()
 }
 
 export MODEL_NAME="${SLURM_JOB_ID}_${SLURM_JOB_NAME}"
-export DATA_DIR_VG_RCNN=${DATASET_DIR}
 MODEL_DIRNAME=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
 
 if [ -d "$MODEL_DIRNAME" ]; then
@@ -51,7 +50,6 @@ else
   export BATCH_SIZE=4
   export MAX_ITER=2000
   export CONFIG_FILE=configs/e2e_relation_X_101_32_8_FPN_1x.yaml
-  export DATA_DIR_VG_RCNN=${DATASET_DIR}
   export NUM_GPUS=$(echo $CUDA_VISIBLE_DEVICES | tr -cd , | wc -c); ((NUM_GPUS++))
   export USE_GT_BOX=True
   export USE_GT_OBJECT_LABEL=True
