@@ -56,5 +56,7 @@ else
   export PRE_VAL=True
   export PORT=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
 
+  export PREDICTOR=MotifPredictor
+
   ${PROJECT_DIR}/scripts/train.sh
 fi
