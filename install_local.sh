@@ -63,9 +63,8 @@ unset INSTALL_DIR
 
 
 echo "Step 2: Downloading Data"
-mkdir -p ${DATASETS_DIR}
-cd ${DATASETS_DIR}
-
+parentdir="$(dirname "${DATASETS_DIR}")"
+cd ${parentdir}
 wget ${DATASET_URL}
 unzip datasets.zip
 
