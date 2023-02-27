@@ -52,7 +52,7 @@ else
   export PREDICTOR=VCTreePredictor
   export USE_GRAFT=False
   export USE_SEMANTIC=False
-  export CONFIG_FILE=configs/e2e_relation_X_101_32_8_FPN_1x.yaml
+  export CONFIG_FILE=configs/e2e_relation_X_101_32_8_FPN_1x_vctree.yaml
 
   # Experiment class variables
   export USE_GT_BOX=True
