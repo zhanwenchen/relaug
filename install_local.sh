@@ -16,7 +16,7 @@ export PROJECT_DIR=${HOME}/relaug
 
 echo "Step 1: Installing dependencies (binaries)"
 conda create --name ${ENV_NAME} python=3.8 ipython scipy h5py -y
-source activate ${ENV_NAME}
+conda activate ${ENV_NAME}
 
 # quantization depends on pytorch=1.10 and above
 # torchvision: https://github.com/pytorch/vision/releases/tag/v0.11.3
@@ -24,7 +24,6 @@ source activate ${ENV_NAME}
 # The maximum cudatoolkit for 1.10.2 is 11.3
 # 1.11.0 changes C++ API so DeviceUtils will be removed and csrc will need an update
 conda install pytorch==1.10.2 torchvision==0.11.3 torchaudio==0.10.2 cudatoolkit=11.3 -c pytorch -y
-
 
 # scene_graph_benchmark and coco api dependencies
 pip install ninja yacs cython matplotlib tqdm opencv-python-headless overrides tensorboard setuptools==59.5.0
@@ -47,6 +46,7 @@ cd apex
 python setup.py install --cuda_ext --cpp_ext
 
 
+# If haven't downloaded, do cd && git clone git@github.com:zhanwenchen/relaug.git
 # install project code
 cd ${PROJECT_DIR}
 
@@ -56,8 +56,7 @@ cd ${PROJECT_DIR}
 # re-build it
 python setup.py build develop
 
-unset INSTALL_DIR
-
+conda clean --all
 
 echo "Step 2: Downloading Data"
 parentdir="$(dirname "${DATASETS_DIR}")"
