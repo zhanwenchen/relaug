@@ -74,7 +74,7 @@ else
 
   # Paths and configss
   export WEIGHT="''"
-  export ALL_EDGES_FPATH=/home/zhanwen/gbnet/graphs/005/all_edges.pkl
+  export ALL_EDGES_FPATH=/home/pct4et/datasets/visual_genome/gbnet/all_edges.pkl
   export DATASETS_DIR=${HOME}/datasets
 
   # System variables
