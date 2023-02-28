@@ -64,7 +64,7 @@ else
   export PRE_VAL=False
 
   # Experiment hyperparams
-  export BATCH_SIZE=28
+  export BATCH_SIZE=48
   export MAX_ITER=50000
   export LR=1e-3
   export SEED=1234
