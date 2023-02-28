@@ -50,16 +50,13 @@ if [ -d "$MODEL_DIRNAME" ]; then
 else
   # Experiment variables
   export PREDICTOR=VCTreePredictor
-  export USE_GRAFT=False
-  export USE_SEMANTIC=True
   export CONFIG_FILE=configs/e2e_relation_X_101_32_8_FPN_1x_vctree.yaml
-  export PREDICTOR=VCTreePredictor
   export USE_GRAFT=False
   export USE_SEMANTIC=True
   export STRATEGY='cooccurrence-pred_cov'
   export BOTTOM_K=30
   export NUM2AUG=4
-  export MAX_BATCHSIZE_AUG=96
+  export MAX_BATCHSIZE_AUG=20
 
   # Experiment class variables
   export USE_GT_BOX=False
@@ -67,14 +64,14 @@ else
   export PRE_VAL=False
 
   # Experiment hyperparams
-  export BATCH_SIZE=48
+  export BATCH_SIZE=40
   export MAX_ITER=50000
   export LR=1e-3
   export SEED=1234
 
   # Paths and configss
   export WEIGHT="''"
-  export ALL_EDGES_FPATH=/home/zhanwen/gbnet/graphs/005/all_edges.pkl
+  export ALL_EDGES_FPATH=/home/pct4et/datasets/visual_genome/gbnet/all_edges.pkl
   export DATASETS_DIR=${HOME}/datasets
 
   # System variables
