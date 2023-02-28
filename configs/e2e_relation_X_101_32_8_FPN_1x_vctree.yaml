@@ -51,9 +51,9 @@ MODEL:
     POS_WEIGHT: 50.0
     ATTRIBUTE_LOSS_WEIGHT: 1.0
     NUM_ATTRIBUTES: 201             # 201 for VG, 501 for GQA
-    MAX_ATTRIBUTES: 10             
-    ATTRIBUTE_BGFG_SAMPLE: True    
-    ATTRIBUTE_BGFG_RATIO: 3        
+    MAX_ATTRIBUTES: 10
+    ATTRIBUTE_BGFG_SAMPLE: True
+    ATTRIBUTE_BGFG_RATIO: 3
   ROI_RELATION_HEAD:
     USE_GT_BOX: True
     USE_GT_OBJECT_LABEL: True
@@ -63,7 +63,7 @@ MODEL:
     BATCH_SIZE_PER_IMAGE: 1024      # sample as much as possible
     POSITIVE_FRACTION: 0.25
     CONTEXT_POOLING_DIM: 4096
-    CONTEXT_HIDDEN_DIM: 512         #1024 for VCTree
+    CONTEXT_HIDDEN_DIM: 1024         #1024 for VCTree
     POOLING_ALL_LEVELS: True
     LABEL_SMOOTHING_LOSS: False
     FEATURE_EXTRACTOR: "RelationFeatureExtractor"
@@ -79,7 +79,7 @@ MODEL:
     ### Implementation for paper "Unbiased Scene Graph Generation from Biased Training"
     CAUSAL:
       EFFECT_TYPE: 'none'             # candicates: 'TDE', 'NIE', 'TE', 'none'
-      FUSION_TYPE: 'sum'              # candicates: 'sum', 'gate'         
+      FUSION_TYPE: 'sum'              # candicates: 'sum', 'gate'
       SEPARATE_SPATIAL: False         # separate spatial in union feature
       CONTEXT_LAYER: "motifs"         # candicates: motifs, vctree, vtranse
       SPATIAL_FOR_VISION: True
@@ -92,7 +92,7 @@ MODEL:
       NUM_HEAD: 8
       KEY_DIM: 64
       VAL_DIM: 64
-      INNER_DIM: 2048 
+      INNER_DIM: 2048
 DATASETS:
   TRAIN: ("VG_stanford_filtered_with_attribute_train",)
   VAL: ("VG_stanford_filtered_with_attribute_val",)
@@ -127,4 +127,4 @@ TEST:
     REQUIRE_OVERLAP: False
     LATER_NMS_PREDICTION_THRES: 0.5
   CUSTUM_EVAL: False       # eval SGDet model on custum images, output a json
-  CUSTUM_PATH: '.'         # the folder that contains the custum images, only jpg files are allowed  
+  CUSTUM_PATH: '.'         # the folder that contains the custum images, only jpg files are allowed
