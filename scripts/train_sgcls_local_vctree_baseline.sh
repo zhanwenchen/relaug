@@ -53,7 +53,7 @@ else
   export USE_GRAFT=False
   export USE_SEMANTIC=False
   export CONFIG_FILE=configs/e2e_relation_X_101_32_8_FPN_1x_vctree.yaml
-  export STRATEGY=''
+  export STRATEGY="''"
   export BOTTOM_K=-1
   export NUM2AUG=-1
   export MAX_BATCHSIZE_AUG=-1
