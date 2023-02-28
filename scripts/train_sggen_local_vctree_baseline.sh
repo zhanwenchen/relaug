@@ -57,10 +57,10 @@ else
   # Experiment class variables
   export USE_GT_BOX=False
   export USE_GT_OBJECT_LABEL=False
-  export PRE_VAL=True
+  export PRE_VAL=False
 
   # Experiment hyperparams
-  export BATCH_SIZE=16
+  export BATCH_SIZE=96
   export MAX_ITER=50000
   export LR=1e-3
   export SEED=1234

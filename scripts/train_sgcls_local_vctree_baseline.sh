@@ -4,7 +4,7 @@ timestamp() {
   date +"%Y%m%d%H%M%S"
 }
 
-SLURM_JOB_NAME=vctree_none_none_sgcls_4GPU_labx_1e3
+SLURM_JOB_NAME=vctree_none_none_sgcls_4GPU_lab2_1e3
 SLURM_JOB_ID=$(timestamp)
 
 error_exit()
@@ -60,7 +60,7 @@ else
   export PRE_VAL=False
 
   # Experiment hyperparams
-  export BATCH_SIZE=24
+  export BATCH_SIZE=128
   export MAX_ITER=50000
   export LR=1e-3
   export SEED=1234
@@ -71,7 +71,7 @@ else
   export DATASETS_DIR=${HOME}/datasets
 
   # System variables
-  export CUDA_VISIBLE_DEVICES=6,7,8,9
+  export CUDA_VISIBLE_DEVICES=1,2,3,4
   export NUM_GPUS=$(echo $CUDA_VISIBLE_DEVICES | tr -cd , | wc -c); ((NUM_GPUS++))
   export PORT=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
 
