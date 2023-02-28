@@ -518,6 +518,12 @@ _C.SOLVER.TO_VAL = True
 _C.SOLVER.PRE_VAL = True
 _C.SOLVER.VAL_PERIOD = 2500
 
+_C.SOLVER.AUGMENTATION = CN()
+_C.SOLVER.AUGMENTATION.NUM2AUG = -1
+_C.SOLVER.AUGMENTATION.MAX_BATCHSIZE_AUG = -1
+_C.SOLVER.AUGMENTATION.STRATEGY = ''
+_C.SOLVER.AUGMENTATION.BOTTOM_K = -1
+_C.SOLVER.AUGMENTATION.USE_SEMANTIC = False
 # update schedule
 # when load from a previous model, if set to True
 # only maintain the iteration number and all the other settings of the 

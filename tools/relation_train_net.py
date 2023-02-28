@@ -17,7 +17,7 @@ import torch
 from torch.nn.utils import clip_grad_norm_
 
 from maskrcnn_benchmark.config import cfg
-from maskrcnn_benchmark.data import make_data_loader
+from maskrcnn_benchmark.data import make_data_loader, get_dataset_statistics
 from maskrcnn_benchmark.solver import make_lr_scheduler
 from maskrcnn_benchmark.solver import make_optimizer
 from maskrcnn_benchmark.engine.trainer import reduce_loss_dict
@@ -31,7 +31,7 @@ from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.logger import setup_logger, debug_print
 from maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
-
+from maskrcnn_benchmark.utils.relation_augmentation import RelationAugmenter
 
 # See if we can use apex.DistributedDataParallel instead of the torch default,
 # and enable mixed-precision via apex.amp
@@ -116,6 +116,17 @@ def train(cfg, local_rank, distributed, logger):
         is_distributed=distributed,
     )
     debug_print(logger, 'end dataloader')
+    statistics = get_dataset_statistics(cfg)
+    fg_matrix = statistics['fg_matrix']
+    pred_counts = fg_matrix.sum((0,1))
+    use_semantic = cfg.SOLVER.AUGMENTATION.USE_SEMANTIC
+    if use_semantic:
+        strategy = cfg.SOLVER.AUGMENTATION.STRATEGY
+        bottom_k = cfg.SOLVER.AUGMENTATION.BOTTOM_K
+        num2aug = cfg.SOLVER.AUGMENTATION.NUM2AUG
+        max_batchsize_aug = cfg.SOLVER.AUGMENTATION.MAX_BATCHSIZE_AUG
+        relation_augmenter = RelationAugmenter(pred_counts, bottom_k=bottom_k, strategy=strategy, cfg=cfg) # TODO: read strategy from scripts
+        debug_print(logger, 'end RelationAugmenter')
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
     if cfg.SOLVER.PRE_VAL:
@@ -133,7 +144,15 @@ def train(cfg, local_rank, distributed, logger):
     for iteration, (images, targets, _) in enumerate(train_data_loader, start_iter):
         if any(len(target) < 1 for target in targets):
             logger.error(f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}" )
-        data_time = time.time() - end
+        time_after_data = time.time()
+        data_time = time_after_data - end
+        num_before = len(targets)
+        if use_semantic:
+            images, targets = relation_augmenter.augment(images, targets, num2aug, max_batchsize_aug)
+            print(f'{iteration}: Augmentation: {num_before} => {len(targets)}')
+            time_after_semantic = time.time()
+            semantic_time = time_after_semantic - time_after_data
+
         iteration = iteration + 1
         arguments["iteration"] = iteration
 
@@ -166,7 +185,10 @@ def train(cfg, local_rank, distributed, logger):
 
         batch_time = time.time() - end
         end = time.time()
-        meters.update(time=batch_time, data=data_time)
+        if use_semantic:
+            meters.update(time=batch_time, data=data_time, semantic=semantic_time)
+        else:
+            meters.update(time=batch_time, data=data_time)
 
         eta_seconds = meters.time.global_avg * (max_iter - iteration)
         eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
