@@ -50,10 +50,7 @@ if [ -d "$MODEL_DIRNAME" ]; then
 else
   # Experiment variables
   export PREDICTOR=VCTreePredictor
-  export USE_GRAFT=False
-  export USE_SEMANTIC=True
   export CONFIG_FILE=configs/e2e_relation_X_101_32_8_FPN_1x_vctree.yaml
-  export PREDICTOR=VCTreePredictor
   export USE_GRAFT=False
   export USE_SEMANTIC=True
   export STRATEGY='cooccurrence-pred_cov'
