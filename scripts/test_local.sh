@@ -15,7 +15,7 @@ if [ -d "$MODEL_DIRPATH" ]; then
   echo "Started testing model ${MODEL_NAME} at iteration ${ITERATION}"
   torchrun --master_port ${PORT} --nproc_per_node=${NUM_GPUS} \
           ${PROJECT_DIR}/tools/relation_test_net.py \
-          --config-file "${MODEL_DIRPATH}/config.yaml" \
+          --config-file "${MODEL_DIRPATH}/config.yml" \
           TEST.IMS_PER_BATCH ${NUM_GPUS} \
           DTYPE "float32" \
           GLOVE_DIR ${DATASETS_DIR}/glove \
