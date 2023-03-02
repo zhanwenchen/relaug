@@ -24,7 +24,7 @@ if [ -d "$MODEL_DIRPATH" ]; then
           OUTPUT_DIR ./checkpoints/${MODEL_NAME} \
           TEST.ALLOW_LOAD_FROM_CACHE False \
           TEST.VAL_FLAG False \
-          MODEL.ROI_RELATION_HEAD.VAL_ALPHA 0.0 2>&1 | tee ${MODEL_DIRNAME}/log_test_${ITERATION}.log &&
+          MODEL.ROI_RELATION_HEAD.VAL_ALPHA 0.0 2>&1 | tee ${MODEL_DIRPATH}/log_test_${ITERATION}.log &&
   echo "Finished testing model ${MODEL_NAME} at iteration ${ITERATION}" ||
   echo "Failed to test model ${MODEL_NAME} at iteration ${ITERATION}"
 else
