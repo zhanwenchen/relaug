@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export PROJECT_DIR=${HOME}/relaug
-export MODEL_NAME=""
+export MODEL_NAME="20230228070836_vctree_none_semantic_sggen_4GPU_labx_1e3"
 ITERATION=0008000
 MODEL_DIRPATH=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
 export LOGDIR=${PROJECT_DIR}/log
