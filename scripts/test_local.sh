@@ -29,3 +29,4 @@ if [ -d "$MODEL_DIRPATH" ]; then
   echo "Failed to test model ${MODEL_NAME} at iteration ${ITERATION}"
 else
   error_exit "Aborted: ${MODEL_DIRPATH} does not exist." 2>&1 | tee -a ${LOGDIR}/${MODEL_NAME}_${ITERATION}.log
+fi
