@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PROJECT_DIR=${HOME}/relaug
+export PROJECT_DIR=/localtmp/pct4et/relaug
 export MODEL_NAME="20230228070836_vctree_none_semantic_sggen_4GPU_labx_1e3"
 ITERATION=0008000
 MODEL_DIRPATH=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
@@ -8,8 +8,8 @@ export LOGDIR=${PROJECT_DIR}/log
 if [ -d "$MODEL_DIRPATH" ]; then
   export CUDA_VISIBLE_DEVICES=0
   export NUM_GPUS=$(echo ${CUDA_VISIBLE_DEVICES} | tr -cd , | wc -c); ((NUM_GPUS++))
-  export ALL_EDGES_FPATH=/home/pct4et/datasets/visual_genome/gbnet/all_edges.pkl
-  export DATASETS_DIR=${HOME}/datasets
+  export DATASETS_DIR=/localtmp/pct4et/datasets
+  export ALL_EDGES_FPATH=${DATASETS_DIR}/visual_genome/gbnet/all_edges.pkl
   export PORT=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
 
   echo "Started testing model ${MODEL_NAME} at iteration ${ITERATION}"

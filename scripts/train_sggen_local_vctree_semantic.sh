@@ -40,7 +40,7 @@ error_check()
 
 }
 
-export PROJECT_DIR=${HOME}/relaug
+export PROJECT_DIR=/localtmp/pct4et/relaug
 export MODEL_NAME="${SLURM_JOB_ID}_${SLURM_JOB_NAME}"
 export LOGDIR=${PROJECT_DIR}/log
 MODEL_DIRNAME=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
@@ -71,8 +71,8 @@ else
 
   # Paths and configss
   export WEIGHT="''"
-  export ALL_EDGES_FPATH=/home/pct4et/datasets/visual_genome/gbnet/all_edges.pkl
-  export DATASETS_DIR=${HOME}/datasets
+  export DATASETS_DIR=/localtmp/pct4et/datasets
+  export ALL_EDGES_FPATH=${DATASETS_DIR}/visual_genome/gbnet/all_edges.pkl
 
   # System variables
   export CUDA_VISIBLE_DEVICES=1,2,3,4
