@@ -5,10 +5,10 @@
 # Assumption: you have already cloned this repository
 
 export ENV_NAME=relaug
-export INSTALL_DIR=${HOME}
+export INSTALL_DIR=/localtmp/pct4et
 export DATASET_URL=https://sgg-zhanwen.s3.amazonaws.com/datasets.zip
-export DATASETS_DIR=${HOME}/datasets
-export PROJECT_DIR=${HOME}/relaug
+export DATASETS_DIR=/localtmp/pct4et/datasets
+export PROJECT_DIR=/localtmp/pct4et/relaug
 
 
 # TODO: assert that checkpoints and log directories don't exist.
