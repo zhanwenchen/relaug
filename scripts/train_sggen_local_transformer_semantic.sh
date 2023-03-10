@@ -49,7 +49,7 @@ if [ -d "$MODEL_DIRNAME" ]; then
   error_exit "Aborted: ${MODEL_DIRNAME} exists." 2>&1 | tee -a ${LOGDIR}/${SLURM_JOB_NAME}_${SLURM_JOB_ID}.log
 else
   # Experiment variables
-  export PREDICTOR=VCTreePredictor
+  export PREDICTOR=TransformerPredictor
   export CONFIG_FILE=configs/e2e_relation_X_101_32_8_FPN_1x_transformer.yaml
   export USE_GRAFT=False
   export USE_SEMANTIC=True
