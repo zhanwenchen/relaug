@@ -149,7 +149,7 @@ def train(cfg, local_rank, distributed, logger):
         num_before = len(targets)
         if use_semantic:
             images, targets = relation_augmenter.augment(images, targets)
-            print(f'{iteration}: Augmentation: {num_before} => {len(targets)}')
+            # print(f'{iteration}: Augmentation: {num_before} => {len(targets)}')
             time_after_semantic = time.time()
             semantic_time = time_after_semantic - time_after_data
 
