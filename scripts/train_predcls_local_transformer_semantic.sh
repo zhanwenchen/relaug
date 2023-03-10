@@ -56,7 +56,7 @@ else
   export STRATEGY='cooccurrence-pred_cov'
   export BOTTOM_K=30
   export NUM2AUG=4
-  export MAX_BATCHSIZE_AUG=24
+  export MAX_BATCHSIZE_AUG=20
 
   # Experiment class variables
   export USE_GT_BOX=True
@@ -64,7 +64,7 @@ else
   export PRE_VAL=False
 
   # Experiment hyperparams
-  export BATCH_SIZE=48
+  export BATCH_SIZE=40
   export MAX_ITER=50000
   export LR=1e-3
   export SEED=1234
