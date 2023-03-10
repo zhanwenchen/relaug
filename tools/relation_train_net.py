@@ -121,6 +121,7 @@ def train(cfg, local_rank, distributed, logger):
     pred_counts = fg_matrix.sum((0,1))
     use_semantic = cfg.SOLVER.AUGMENTATION.USE_SEMANTIC
     if use_semantic:
+        debug_print(logger, 'using RelationAugmenter')
         strategy = cfg.SOLVER.AUGMENTATION.STRATEGY
         bottom_k = cfg.SOLVER.AUGMENTATION.BOTTOM_K
         num2aug = cfg.SOLVER.AUGMENTATION.NUM2AUG
@@ -149,7 +150,7 @@ def train(cfg, local_rank, distributed, logger):
         num_before = len(targets)
         if use_semantic:
             images, targets = relation_augmenter.augment(images, targets)
-            print(f'{iteration}: Augmentation: {num_before} => {len(targets)}')
+            # print(f'{iteration}: Augmentation: {num_before} => {len(targets)}')
             time_after_semantic = time.time()
             semantic_time = time_after_semantic - time_after_data
 
