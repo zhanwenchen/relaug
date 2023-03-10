@@ -113,7 +113,7 @@ SOLVER:
   PRINT_GRAD_FREQ: 4000
   SCHEDULE:
     # the following paramters are only used for WarmupReduceLROnPlateau
-    TYPE: "WarmupMultiStepLR"    # WarmupMultiStepLR, WarmupReduceLROnPlateau
+    TYPE: "WarmupReduceLROnPlateau"    # WarmupMultiStepLR, WarmupReduceLROnPlateau
     PATIENCE: 2
     THRESHOLD: 0.001
     COOLDOWN: 0
