@@ -318,10 +318,10 @@ class RelationAugmenter(object):
                 # ANSWER: For cutmix-like, we only augment the bottom rel_og.
                 # For others, we save the bottom rel_new.
                 rels_new = sample_func(rel_og, num2aug, False, subj=idx_subj_og, obj=idx_obj_og)
-                if rels_new.nelement() == 0:
-                    print(f'no rels_new for rel_og={self.idx2preds[rel_og]}')
-                else:
-                    print(f'considering rel_og={self.idx2preds[rel_og]} => rel_new={self.idx2preds_np[rels_new]}')
+                # if rels_new.nelement() == 0:
+                #     print(f'no rels_new for rel_og={self.idx2preds[rel_og]}')
+                # else:
+                #     print(f'considering rel_og={self.idx2preds[rel_og]} => rel_new={self.idx2preds_np[rels_new]}')
 
                 for rel_new in rels_new:
                     if bottom_k_rels and int(rel_new) not in bottom_k_rels:
