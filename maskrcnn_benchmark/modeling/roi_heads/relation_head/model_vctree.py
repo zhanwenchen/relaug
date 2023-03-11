@@ -72,7 +72,7 @@ class VCTreeLSTMContext(nn.Module):
     """
     Modified from neural-motifs to encode contexts for each objects
     """
-    def __init__(self, config, obj_classes, rel_classes, statistics, in_channels):
+    def __init__(self, config, obj_classes, rel_classes, pred_dist, in_channels):
         super(VCTreeLSTMContext, self).__init__()
         self.cfg = config
         self.obj_classes = obj_classes
@@ -122,7 +122,7 @@ class VCTreeLSTMContext(nn.Module):
         assert self.nl_obj > 0 and self.nl_edge > 0
 
         # VCTree
-        co_occour = statistics['pred_dist'].float().sum(-1)
+        co_occour = pred_dist.float().sum(-1)
         assert co_occour.shape[0] == co_occour.shape[-1]
         assert len(co_occour.shape) == 2
         self.bi_freq_prior = nn.Linear(self.num_obj_classes*self.num_obj_classes, 1, bias=False)

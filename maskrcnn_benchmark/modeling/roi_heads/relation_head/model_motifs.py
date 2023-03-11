@@ -15,9 +15,9 @@ class FrequencyBias(nn.Module):
     P(predicate | obj1, obj2, img).
     """
 
-    def __init__(self, cfg, statistics, eps=1e-3):
+    def __init__(self, cfg, pred_dist, eps=1e-3):
         super(FrequencyBias, self).__init__()
-        pred_dist = statistics['pred_dist'].float()
+        pred_dist = pred_dist.float()
         assert pred_dist.size(0) == pred_dist.size(1)
 
         self.num_objs = pred_dist.size(0)
