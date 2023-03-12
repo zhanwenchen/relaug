@@ -8,7 +8,6 @@ from functools import reduce
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-from maskrcnn_benchmark.data import get_dataset_statistics
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.utils.miscellaneous import intersect_2d, argsort_desc, bbox_overlaps

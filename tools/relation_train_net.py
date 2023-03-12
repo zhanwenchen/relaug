@@ -17,7 +17,7 @@ import torch
 from torch.nn.utils import clip_grad_norm_
 
 from maskrcnn_benchmark.config import cfg
-from maskrcnn_benchmark.data import make_data_loader, get_dataset_statistics
+from maskrcnn_benchmark.data import make_data_loader, VGStats
 from maskrcnn_benchmark.solver import make_lr_scheduler
 from maskrcnn_benchmark.solver import make_optimizer
 from maskrcnn_benchmark.engine.trainer import reduce_loss_dict
@@ -43,6 +43,28 @@ except ImportError:
 
 def train(cfg, local_rank, distributed, logger):
     debug_print(logger, 'prepare training')
+    arguments = {}
+    arguments["iteration"] = 0
+    train_data_loader = make_data_loader(
+        cfg,
+        mode='train',
+        is_distributed=distributed,
+        start_iter=arguments["iteration"],
+    )
+    val_data_loaders = make_data_loader(
+        cfg,
+        mode='val',
+        is_distributed=distributed,
+    )
+    debug_print(logger, 'end dataloader')
+    statistics = train_data_loader.dataset.get_statistics()
+    vg_stats = VGStats(
+        statistics['fg_matrix'],
+        statistics['pred_dist'],
+        statistics['obj_classes'],
+        statistics['rel_classes'],
+        statistics['att_classes'],
+    )
     model = build_detection_model(cfg)
     debug_print(logger, 'end model construction')
 
@@ -86,8 +108,6 @@ def train(cfg, local_rank, distributed, logger):
             find_unused_parameters=True,
         )
     debug_print(logger, 'end distributed')
-    arguments = {}
-    arguments["iteration"] = 0
 
     output_dir = cfg.OUTPUT_DIR
 
@@ -100,28 +120,17 @@ def train(cfg, local_rank, distributed, logger):
         extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT,
                                        update_schedule=cfg.SOLVER.UPDATE_SCHEDULE_DURING_LOAD)
         arguments.update(extra_checkpoint_data)
+        if arguments["iteration"] != 0:
+            raise NotImplementedError(f'Because we moved up the dataloaders for the singleton statistics, we cannot continue training from a non-zero iteration')
     else:
         # load_mapping is only used when we init current model from detection model.
         checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT, with_optim=False, load_mapping=load_mapping)
     debug_print(logger, 'end load checkpointer')
-    train_data_loader = make_data_loader(
-        cfg,
-        mode='train',
-        is_distributed=distributed,
-        start_iter=arguments["iteration"],
-    )
-    val_data_loaders = make_data_loader(
-        cfg,
-        mode='val',
-        is_distributed=distributed,
-    )
-    debug_print(logger, 'end dataloader')
-    statistics = get_dataset_statistics(cfg)
-    fg_matrix = statistics['fg_matrix']
-    pred_counts = fg_matrix.sum((0,1))
     use_semantic = cfg.SOLVER.AUGMENTATION.USE_SEMANTIC
     if use_semantic:
         debug_print(logger, 'using RelationAugmenter')
+        fg_matrix = vg_stats.fg_matrix
+        pred_counts = fg_matrix.sum((0,1))
         strategy = cfg.SOLVER.AUGMENTATION.STRATEGY
         bottom_k = cfg.SOLVER.AUGMENTATION.BOTTOM_K
         num2aug = cfg.SOLVER.AUGMENTATION.NUM2AUG

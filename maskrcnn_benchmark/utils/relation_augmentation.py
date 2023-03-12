@@ -19,7 +19,7 @@ from torch import (
     nan_to_num as torch_nan_to_num,
 )
 from maskrcnn_benchmark.structures.image_list import ImageList
-from maskrcnn_benchmark.data import get_dataset_statistics # calls VisualGenome.get_statistics which calls get_VG_statistics
+from maskrcnn_benchmark.data import VGStats
 
 
 class RelationAugmenter(object):
@@ -151,8 +151,8 @@ class RelationAugmenter(object):
             # set top k to 0
             self.cooccurrence[:, pred_counts_sorted_indices_top] = 0
         elif strategy == 'cooccurrence-fgmat':
-            statistics = get_dataset_statistics(cfg)
-            fg_matrix = statistics['fg_matrix'] # [151, 151, 51]
+            vg_stats = VGStats()
+            fg_matrix = vg_stats.fg_matrix # [151, 151, 51]
             fg_matrix[:, :, 0] = 0 # we don't care about background.
             fg_matrix[0, :, :] = 0 # we don't care about background.
             fg_matrix[:, 0, :] = 0 # we don't care about background.

@@ -8,6 +8,7 @@ from torch.nn import functional as F
 
 from maskrcnn_benchmark.layers import smooth_l1_loss, kl_div_loss, entropy_loss, Label_Smoothing_Regression
 from maskrcnn_benchmark.modeling.utils import cat
+from maskrcnn_benchmark.data import VGStats
 from .model_msg_passing import IMPContext
 from .model_vtranse import VTransEFeature
 from .model_vctree import VCTreeLSTMContext
@@ -15,7 +16,6 @@ from .model_motifs import LSTMContext, FrequencyBias
 from .model_motifs_with_attribute import AttributeLSTMContext
 from .model_transformer import TransformerContext
 from .utils_relation import layer_init, get_box_info, get_box_pair_info
-from maskrcnn_benchmark.data import get_dataset_statistics
 
 
 @registry.ROI_RELATION_PREDICTOR.register("TransformerPredictor")
@@ -34,8 +34,8 @@ class TransformerPredictor(nn.Module):
         self.use_bias = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_BIAS
 
         # load class dict
-        statistics = get_dataset_statistics(config)
-        obj_classes, rel_classes, att_classes = statistics['obj_classes'], statistics['rel_classes'], statistics['att_classes']
+        vg_stats = VGStats()
+        obj_classes, rel_classes, att_classes = vg_stats.obj_classes, vg_stats.rel_classes, vg_stats.att_classes
         assert self.num_obj_cls==len(obj_classes)
         assert self.num_att_cls==len(att_classes)
         assert self.num_rel_cls==len(rel_classes)
@@ -65,7 +65,7 @@ class TransformerPredictor(nn.Module):
 
         if self.use_bias:
             # convey statistics into FrequencyBias to avoid loading again
-            self.freq_bias = FrequencyBias(config, statistics)
+            self.freq_bias = FrequencyBias(config, vg_stats.pred_dist)
 
     def forward(self, proposals, rel_pair_idxs, rel_labels, rel_binarys, roi_features, union_features, logger=None):
         """
@@ -155,8 +155,8 @@ class IMPPredictor(nn.Module):
 
         # freq 
         if self.use_bias:
-            statistics = get_dataset_statistics(config)
-            self.freq_bias = FrequencyBias(config, statistics)
+            vg_stats = VGStats()
+            self.freq_bias = FrequencyBias(config, vg_stats.pred_dist)
 
 
     def forward(self, proposals, rel_pair_idxs, rel_labels, rel_binarys, roi_features, union_features, logger=None):
@@ -215,8 +215,8 @@ class MotifPredictor(nn.Module):
         self.use_bias = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_BIAS
 
         # load class dict
-        statistics = get_dataset_statistics(config)
-        obj_classes, rel_classes, att_classes = statistics['obj_classes'], statistics['rel_classes'], statistics['att_classes']
+        vg_stats = VGStats()
+        obj_classes, rel_classes, att_classes = vg_stats.obj_classes, vg_stats.rel_classes, vg_stats.att_classes
         assert self.num_obj_cls==len(obj_classes)
         assert self.num_att_cls==len(att_classes)
         assert self.num_rel_cls==len(rel_classes)
@@ -247,7 +247,7 @@ class MotifPredictor(nn.Module):
 
         if self.use_bias:
             # convey statistics into FrequencyBias to avoid loading again
-            self.freq_bias = FrequencyBias(config, statistics)
+            self.freq_bias = FrequencyBias(config, vg_stats.pred_dist)
 
     def forward(self, proposals, rel_pair_idxs, rel_labels, rel_binarys, roi_features, union_features, logger=None):
         """
@@ -326,13 +326,14 @@ class VCTreePredictor(nn.Module):
         num_inputs = in_channels
 
         # load class dict
-        statistics = get_dataset_statistics(config)
-        obj_classes, rel_classes, att_classes = statistics['obj_classes'], statistics['rel_classes'], statistics['att_classes']
+        vg_stats = VGStats()
+        obj_classes, rel_classes, att_classes = vg_stats.obj_classes, vg_stats.rel_classes, vg_stats.att_classes
+        pred_dist = vg_stats.pred_dist
         assert self.num_obj_cls==len(obj_classes)
         assert self.num_att_cls==len(att_classes)
         assert self.num_rel_cls==len(rel_classes)
         # init contextual lstm encoding
-        self.context_layer = VCTreeLSTMContext(config, obj_classes, rel_classes, statistics, in_channels)
+        self.context_layer = VCTreeLSTMContext(config, obj_classes, rel_classes, pred_dist, in_channels)
 
         # post decoding
         self.hidden_dim = config.MODEL.ROI_RELATION_HEAD.CONTEXT_HIDDEN_DIM
@@ -361,7 +362,7 @@ class VCTreePredictor(nn.Module):
         else:
             self.union_single_not_match = False
 
-        self.freq_bias = FrequencyBias(config, statistics)
+        self.freq_bias = FrequencyBias(config, pred_dist)
 
     def forward(self, proposals, rel_pair_idxs, rel_labels, rel_binarys, roi_features, union_features, logger=None):
         """
@@ -448,15 +449,15 @@ class CausalAnalysisPredictor(nn.Module):
         num_inputs = in_channels
 
         # load class dict
-        statistics = get_dataset_statistics(config)
-        obj_classes, rel_classes = statistics['obj_classes'], statistics['rel_classes']
+        vg_stats = VGStats()
+        obj_classes, rel_classes = vg_stats.obj_classes, vg_stats.rel_classes
         assert self.num_obj_cls==len(obj_classes)
         assert self.num_rel_cls==len(rel_classes)
         # init contextual lstm encoding
         if config.MODEL.ROI_RELATION_HEAD.CAUSAL.CONTEXT_LAYER == "motifs":
             self.context_layer = LSTMContext(config, obj_classes, rel_classes, in_channels)
         elif config.MODEL.ROI_RELATION_HEAD.CAUSAL.CONTEXT_LAYER == "vctree":
-            self.context_layer = VCTreeLSTMContext(config, obj_classes, rel_classes, statistics, in_channels)
+            self.context_layer = VCTreeLSTMContext(config, obj_classes, rel_classes, vg_stats.pred_dist, in_channels)
         elif config.MODEL.ROI_RELATION_HEAD.CAUSAL.CONTEXT_LAYER == "vtranse":
             self.context_layer = VTransEFeature(config, obj_classes, rel_classes, in_channels)
         else:
@@ -492,7 +493,7 @@ class CausalAnalysisPredictor(nn.Module):
         assert self.pooling_dim == config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM
 
         # convey statistics into FrequencyBias to avoid loading again
-        self.freq_bias = FrequencyBias(config, statistics)
+        self.freq_bias = FrequencyBias(config, vg_stats.pred_dist)
 
         # add spatial emb for visual feature
         if self.spatial_for_vision:
