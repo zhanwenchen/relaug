@@ -70,7 +70,7 @@ else
   export STRATEGY='cooccurrence-pred_cov'
   export BOTTOM_K=30
   export NUM2AUG=4
-  export MAX_BATCHSIZE_AUG=24
+  export MAX_BATCHSIZE_AUG=80
   if [ "${USE_SEMANTIC}" = True ]; then
       export BATCH_SIZE_PER_GPU=$((${MAX_BATCHSIZE_AUG} / 2))
   else
