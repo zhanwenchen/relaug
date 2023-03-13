@@ -57,6 +57,11 @@ else
   export BOTTOM_K=30
   export NUM2AUG=4
   export MAX_BATCHSIZE_AUG=20
+  if [ "${USE_SEMANTIC}" = True ]; then
+      export BATCH_SIZE_PER_GPU=$((${MAX_BATCHSIZE_AUG} / 2))
+  else
+      export BATCH_SIZE_PER_GPU=${MAX_BATCHSIZE_AUG}
+  fi
 
   # Experiment class variables
   export USE_GT_BOX=True
@@ -64,7 +69,6 @@ else
   export PRE_VAL=False
 
   # Experiment hyperparams
-  export BATCH_SIZE=40
   export MAX_ITER=50000
   export LR=1e-3
   export SEED=1234
@@ -76,7 +80,8 @@ else
 
   # System variables
   export CUDA_VISIBLE_DEVICES=6,7,8,9
-  export NUM_GPUS=$(echo $CUDA_VISIBLE_DEVICES | tr -cd , | wc -c); ((NUM_GPUS++))
+  export NUM_GPUS=$(echo ${CUDA_VISIBLE_DEVICES} | tr -cd , | wc -c); ((NUM_GPUS++))
+  export BATCH_SIZE=$((${NUM_GPUS} * ${BATCH_SIZE_PER_GPU}))
   export PORT=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
 
   ${PROJECT_DIR}/scripts/train.sh
