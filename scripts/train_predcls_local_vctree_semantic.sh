@@ -40,7 +40,7 @@ error_check()
 
 }
 
-export PROJECT_DIR=/localtmp/pct4et/relaug
+export PROJECT_DIR=/home/zhanwen/relaug
 export MODEL_NAME="${SLURM_JOB_ID}_${SLURM_JOB_NAME}"
 export LOGDIR=${PROJECT_DIR}/log
 MODEL_DIRNAME=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
@@ -56,12 +56,17 @@ else
   export STRATEGY='cooccurrence-pred_cov'
   export BOTTOM_K=30
   export NUM2AUG=4
+<<<<<<< Updated upstream
   export MAX_BATCHSIZE_AUG=24
   if [ "${USE_SEMANTIC}" = True ]; then
       export BATCH_SIZE_PER_GPU=$((${MAX_BATCHSIZE_AUG} / 2))
   else
       export BATCH_SIZE_PER_GPU=${MAX_BATCHSIZE_AUG}
   fi
+=======
+  export BATCH_SIZE_PER_GPU=8
+  export MAX_BATCHSIZE_AUG=$((2*$BATCH_SIZE_PER_GPU))
+>>>>>>> Stashed changes
 
   # Experiment class variables
   export USE_GT_BOX=True
@@ -75,14 +80,21 @@ else
 
   # Paths and configss
   export WEIGHT="''"
-  export DATASETS_DIR=/localtmp/pct4et/datasets
+  export DATASETS_DIR=/home/zhanwen/datasets
   export ALL_EDGES_FPATH=${DATASETS_DIR}/visual_genome/gbnet/all_edges.pkl
 
   # System variables
+<<<<<<< Updated upstream
   export CUDA_VISIBLE_DEVICES=1,2,3,4
   export NUM_GPUS=$(echo ${CUDA_VISIBLE_DEVICES} | tr -cd , | wc -c); ((NUM_GPUS++))
   export BATCH_SIZE=$((${NUM_GPUS} * ${BATCH_SIZE_PER_GPU}))
+=======
+  export CUDA_VISIBLE_DEVICES=0
+  export NUM_GPUS=$(echo $CUDA_VISIBLE_DEVICES | tr -cd , | wc -c); ((NUM_GPUS++))
+>>>>>>> Stashed changes
   export PORT=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
+
+  export BATCH_SIZE=$((${BATCH_SIZE_PER_GPU}*${NUM_GPUS}))
 
   ${PROJECT_DIR}/scripts/train.sh
 fi

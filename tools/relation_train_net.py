@@ -65,6 +65,7 @@ def train(cfg, local_rank, distributed, logger):
         statistics['rel_classes'],
         statistics['att_classes'],
     )
+    del statistics
     model = build_detection_model(cfg)
     debug_print(logger, 'end model construction')
 
