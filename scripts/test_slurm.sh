@@ -35,6 +35,7 @@ export MODEL_NAME="47611844_transformer_none_semantic_4GPU_riv_1_predcls/"
 export ITERATION=0012000
 export PROJECT_DIR=/scratch/pct4et/relaug
 export DATASETS_DIR=/scratch/pct4et/datasets
+export MODEL_DIRPATH=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
 export LOGDIR=${PROJECT_DIR}/log
 export ALL_EDGES_FPATH=${DATASETS_DIR}/visual_genome/gbnet/all_edges.pkl
 export CONDA_ENVS_DIR=/scratch/pct4et/envs

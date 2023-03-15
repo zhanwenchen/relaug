@@ -21,7 +21,6 @@ error_exit()
 
 export NUM_GPUS=$(echo ${CUDA_VISIBLE_DEVICES} | tr -cd , | wc -c); ((NUM_GPUS++))
 export PORT=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
-export MODEL_DIRPATH=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
 
 
 if [ -d "${MODEL_DIRPATH}" ]; then
