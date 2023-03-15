@@ -5,6 +5,7 @@ from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:sk
 
 import argparse
 import os
+from os.path import exists as os_path_exists
 
 import torch
 from maskrcnn_benchmark.config import cfg
@@ -16,6 +17,7 @@ from maskrcnn_benchmark.utils.collect_env import collect_env_info
 from maskrcnn_benchmark.utils.comm import synchronize, get_rank
 from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir
+from maskrcnn_benchmark.data.vg_stats import VGStats, STATISTICS_FPATH
 
 # Check if we can enable mixed-precision via apex.amp
 try:
@@ -55,6 +57,29 @@ def main():
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.freeze()
+
+    # handle VGStats backward compatibility
+    print(f'relation_test_net: handling VGStats')
+    if os_path_exists(STATISTICS_FPATH):
+        print(f'relation_test_net: found statistics at {STATISTICS_FPATH}')
+        VGStats.from_file()
+        print(f'relation_test_net: Finished loading VGStats')
+    else:
+        print(f'relation_test_net: did NOT find statistics at {STATISTICS_FPATH}. Making training dataloader')
+        data_loaders_train = make_data_loader(cfg=cfg, mode="train", is_distributed=distributed)
+        print(f'relation_test_net: Finished making training dataloader')
+        statistics = data_loaders_train.dataset.get_statistics()
+        print(f'relation_test_net: Finished getting statistics')
+        del data_loaders_train
+        VGStats(
+            statistics['fg_matrix'],
+            statistics['pred_dist'],
+            statistics['obj_classes'],
+            statistics['rel_classes'],
+            statistics['att_classes'],
+        )
+        del statistics
+        print(f'relation_test_net: Finished building VGStats')
 
     save_dir = ""
     logger = setup_logger("maskrcnn_benchmark", save_dir, get_rank())

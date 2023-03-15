@@ -52,23 +52,16 @@ class Checkpointer(object):
         torch.save(data, save_file)
         self.tag_last_checkpoint(save_file)
 
-    def load(self, f=None, with_optim=True, update_schedule=False, load_mapping={}):
-        if self.has_checkpoint():
-            # override argument with existing checkpoint
-            f = self.get_checkpoint_file()
-        if not f:
-            # no checkpoint could be found
-            self.logger.info("No checkpoint found. Initializing model from scratch")
-            return {}
-        self.logger.info("Loading checkpoint from {}".format(f))
-        checkpoint = self._load_file(f)
+    def load(self, model_fname, with_optim=True, update_schedule=False, load_mapping={}):
+        self.logger.info("Loading checkpoint from {}".format(model_fname))
+        checkpoint = self._load_file(model_fname)
         self._load_model(checkpoint, load_mapping)
         if with_optim:
             if "optimizer" in checkpoint and self.optimizer:
-                self.logger.info("Loading optimizer from {}".format(f))
+                self.logger.info("Loading optimizer from {}".format(model_fname))
                 self.optimizer.load_state_dict(checkpoint.pop("optimizer"))
             if "scheduler" in checkpoint and self.scheduler:
-                self.logger.info("Loading scheduler from {}".format(f))
+                self.logger.info("Loading scheduler from {}".format(model_fname))
                 if update_schedule:
                     self.scheduler.last_epoch = checkpoint["iteration"]
                 else:
@@ -77,26 +70,8 @@ class Checkpointer(object):
         # return any further checkpoint data
         return checkpoint
 
-    def has_checkpoint(self):
-        save_file = os.path.join(self.save_dir, "last_checkpoint")
-        return os.path.exists(save_file)
-
-    def get_checkpoint_file(self):
-        save_file = os.path.join(self.save_dir, "last_checkpoint")
-        print("get_checkpoint_file", save_file)
-        try:
-            with open(save_file, "r") as f:
-                last_saved = f.read()
-                last_saved = last_saved.strip()
-        except IOError:
-            # if file doesn't exist, maybe because it has just been
-            # deleted by a separate process
-            last_saved = ""
-        print("last_saved", last_saved)
-        return last_saved
-
     def tag_last_checkpoint(self, last_filename):
-        save_file = os.path.join(self.save_dir, "last_checkpoint")
+        save_file = os.path.join(self.save_dir, last_filename)
         with open(save_file, "w") as f:
             f.write(last_filename)
 
