@@ -280,27 +280,15 @@ class GraftAugmenterDataset(Dataset):
 #         img_og_modified.show()
         return img_og_modified, target_og, None # set index to None
 
-    # def __getitem__(self, index):
-    #     # df_stats_bottom_k differs from df_stats. Triplet index.
-    #     # QUESTION: is this different from example index?
-    #     # BUG: for each triplet, output an example. This is probolematic.
-    #     # SOLUTION:
-    #     idx_og = self.df_stats_bottom_k.index[index]
-    #     img, target, index = self.swap(idx_og, 'subj')
-    #     img, target = self.transforms(img, target)
-    #     return img, target, idx_og
-        # rows_new = []
-#         for rel_bottom_k in rels_bottom_k:
-#         from tqdm.notebook import tqdm
-#         swap = self.swap
-# #         tqdm.pandas()
-#         for idx, _ in tqdm(self.df_stats_bottom_k.iterrows()):
-#             row_new_subj = swap(idx, 'subj')
-#             rows_new.append(row_new_subj)
-#             row_new_obj = swap(idx, 'obj')
-#             rows_new.append(row_new_obj)
-
-        # return rows_new
+    def __getitem__(self, index):
+        # df_stats_bottom_k differs from df_stats. Triplet index.
+        # QUESTION: is this different from example index?
+        # BUG: for each triplet, output an example. This is probolematic.
+        # SOLUTION:
+        idx_og = self.df_stats_bottom_k.index[index]
+        img, target, index = self.swap(idx_og, 'subj')
+        img, target = self.transforms(img, target)
+        return img, target, idx_og
 
     def __len__(self):
         return len(self.df_stats_bottom_k)
