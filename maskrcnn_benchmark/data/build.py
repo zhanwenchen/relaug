@@ -10,6 +10,7 @@ import torch.utils.data
 from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.miscellaneous import save_labels
+from maskrcnn_benchmark.data.datasets.graft_augmenter import GraftAugmenterDataset
 
 from . import datasets as D
 from . import samplers
@@ -56,6 +57,9 @@ def build_dataset(cfg, dataset_list, transforms, dataset_catalog, is_train=True)
     # for testing, return a list of datasets
     if not is_train:
         return datasets
+
+    if cfg.SOLVER.AUGMENTATION.USE_GRAFT is True:
+        datasets.append(GraftAugmenterDataset(dataset))
 
     # for training, concatenate all datasets into a single one
     dataset = datasets[0]

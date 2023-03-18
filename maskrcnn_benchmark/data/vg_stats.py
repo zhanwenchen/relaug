@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 from torch import Tensor
+from torch.utils.data import Dataset
 
 
 class Singleton(type):
@@ -19,7 +20,9 @@ class VGStats(metaclass=Singleton):
     obj_classes: List[str] = None
     rel_classes: List[str] = None
     att_classes: List[str] = None
+    stats: List[list] = None
+    dataset: Dataset = None
 
     def __post_init__(self):
-        if self.fg_matrix is None or self.pred_dist is None or self.obj_classes is None or self.rel_classes is None:
+        if self.fg_matrix is None or self.pred_dist is None or self.obj_classes is None or self.rel_classes is None or self.dataset is None:
             raise ValueError('None')

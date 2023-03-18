@@ -57,14 +57,6 @@ def train(cfg, local_rank, distributed, logger):
         is_distributed=distributed,
     )
     debug_print(logger, 'end dataloader')
-    statistics = train_data_loader.dataset.get_statistics()
-    vg_stats = VGStats(
-        statistics['fg_matrix'],
-        statistics['pred_dist'],
-        statistics['obj_classes'],
-        statistics['rel_classes'],
-        statistics['att_classes'],
-    )
     model = build_detection_model(cfg)
     debug_print(logger, 'end model construction')
 
@@ -129,6 +121,7 @@ def train(cfg, local_rank, distributed, logger):
     use_semantic = cfg.SOLVER.AUGMENTATION.USE_SEMANTIC
     if use_semantic:
         debug_print(logger, 'using RelationAugmenter')
+        vg_stats = VGStats()
         fg_matrix = vg_stats.fg_matrix
         pred_counts = fg_matrix.sum((0,1))
         strategy = cfg.SOLVER.AUGMENTATION.STRATEGY
