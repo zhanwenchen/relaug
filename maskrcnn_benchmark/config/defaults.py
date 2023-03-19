@@ -515,6 +515,7 @@ _C.SOLVER.GRAD_NORM_CLIP = 5.0
 _C.SOLVER.PRINT_GRAD_FREQ = 5000
 # whether validate and validate period
 _C.SOLVER.TO_VAL = True
+_C.SOLVER.TO_TEST = True
 _C.SOLVER.PRE_VAL = True
 _C.SOLVER.VAL_PERIOD = 2500
 
