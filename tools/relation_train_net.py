@@ -143,9 +143,17 @@ def train(cfg, local_rank, distributed, logger):
         debug_print(logger, 'end RelationAugmenter')
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
+    # caching loop variables
+    val_period = cfg.SOLVER.VAL_PERIOD
+    to_val = cfg.SOLVER.TO_VAL is True
+    to_test = cfg.SOLVER.TO_TEST is True
+    dataset_names_val = cfg.DATASETS.VAL
+    dataset_names_test = cfg.DATASETS.TEST
+    output_folders_val = [None] * len(dataset_names_val)
+    output_folders_test = [None] * len(dataset_names_test)
     if cfg.SOLVER.PRE_VAL:
         logger.info("Validate before training")
-        run_val(cfg, model, val_data_loaders, distributed, logger)
+        run_val(cfg, model, val_data_loaders, distributed, logger, dataset_names_val, output_folders_val)
 
     logger.info("Start training")
     meters = MetricLogger(delimiter="  ")
@@ -154,6 +162,16 @@ def train(cfg, local_rank, distributed, logger):
     start_training_time = time.time()
     end = time.time()
 
+    if to_test:
+        logger.info('Started creating test dataloader')
+        # Make test dataloader
+        if cfg.OUTPUT_DIR:
+            for idx, dataset_name in enumerate(dataset_names_test):
+                output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
+                mkdir(output_folder)
+                output_folders_test[idx] = output_folder
+        data_loaders_test = make_data_loader(cfg, mode='test', is_distributed=distributed)
+        logger.info('Finished creating test dataloader')
     print_first_grad = True
     for iteration, (images, targets, _) in enumerate(train_data_loader, start_iter):
         if any(len(target) < 1 for target in targets):
@@ -231,16 +249,21 @@ def train(cfg, local_rank, distributed, logger):
         if iteration == max_iter:
             checkpointer.save("model_final", **arguments)
 
-        val_result = None # used for scheduler updating
-        if cfg.SOLVER.TO_VAL and iteration % cfg.SOLVER.VAL_PERIOD == 0:
-            logger.info("Start validating")
-            val_result = run_val(cfg, model, val_data_loaders, distributed, logger)
-            logger.info("Validation Result: %.4f" % val_result)
+        result_val = None # used for scheduler updating
+        if iteration % val_period == 0:
+            if to_val:
+                logger.info(f"iteration={iteration}: Start validating")
+                result_val = run_val(cfg, model, val_data_loaders, distributed, logger, dataset_names_val, output_folders_val)
+                logger.info(f"iteration={iteration}: Validation Result: %.4f" % result_val)
+            if to_test:
+                logger.info(f"iteration={iteration}: Start testing")
+                result_test = run_val(cfg, model, data_loaders_test, distributed, logger, dataset_names_test, output_folders_test)
+                logger.info(f"iteration={iteration}: Test Result: %.4f" % result_test)
 
         # scheduler should be called after optimizer.step() in pytorch>=1.1.0
         # https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
         if cfg.SOLVER.SCHEDULE.TYPE == "WarmupReduceLROnPlateau":
-            scheduler.step(val_result, epoch=iteration)
+            scheduler.step(result_val, epoch=iteration)
             if scheduler.stage_count >= cfg.SOLVER.SCHEDULE.MAX_DECAY_STEP:
                 logger.info("Trigger MAX_DECAY_STEP at iteration {}.".format(iteration))
                 break
@@ -262,7 +285,7 @@ def fix_eval_modules(eval_modules):
             param.requires_grad = False
         # DO NOT use module.eval(), otherwise the module will be in the test mode, i.e., all self.training condition is set to False
 
-def run_val(cfg, model, val_data_loaders, distributed, logger):
+def run_val(cfg, model, val_data_loaders, distributed, logger, dataset_names, output_folders):
     if distributed:
         model = model.module
     torch.cuda.empty_cache()
@@ -276,9 +299,8 @@ def run_val(cfg, model, val_data_loaders, distributed, logger):
     if cfg.MODEL.ATTRIBUTE_ON:
         iou_types = iou_types + ("attributes", )
 
-    dataset_names = cfg.DATASETS.VAL
     val_result = []
-    for dataset_name, val_data_loader in zip(dataset_names, val_data_loaders):
+    for output_folder, dataset_name, val_data_loader in zip(output_folders, dataset_names, val_data_loaders):
         dataset_result = inference(
                             cfg,
                             model,
@@ -289,7 +311,7 @@ def run_val(cfg, model, val_data_loaders, distributed, logger):
                             device=cfg.MODEL.DEVICE,
                             expected_results=cfg.TEST.EXPECTED_RESULTS,
                             expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
-                            output_folder=None,
+                            output_folder=output_folder,
                             logger=logger,
                         )
         synchronize()
@@ -303,43 +325,6 @@ def run_val(cfg, model, val_data_loaders, distributed, logger):
     del gathered_result, valid_result
     torch.cuda.empty_cache()
     return val_result
-
-def run_test(cfg, model, distributed, logger):
-    if distributed:
-        model = model.module
-    torch.cuda.empty_cache()
-    iou_types = ("bbox",)
-    if cfg.MODEL.MASK_ON:
-        iou_types = iou_types + ("segm",)
-    if cfg.MODEL.KEYPOINT_ON:
-        iou_types = iou_types + ("keypoints",)
-    if cfg.MODEL.RELATION_ON:
-        iou_types = iou_types + ("relations", )
-    if cfg.MODEL.ATTRIBUTE_ON:
-        iou_types = iou_types + ("attributes", )
-    output_folders = [None] * len(cfg.DATASETS.TEST)
-    dataset_names = cfg.DATASETS.TEST
-    if cfg.OUTPUT_DIR:
-        for idx, dataset_name in enumerate(dataset_names):
-            output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
-            mkdir(output_folder)
-            output_folders[idx] = output_folder
-    data_loaders_val = make_data_loader(cfg, mode='test', is_distributed=distributed)
-    for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
-        inference(
-            cfg,
-            model,
-            data_loader_val,
-            dataset_name=dataset_name,
-            iou_types=iou_types,
-            box_only=False if cfg.MODEL.RETINANET_ON else cfg.MODEL.RPN_ONLY,
-            device=cfg.MODEL.DEVICE,
-            expected_results=cfg.TEST.EXPECTED_RESULTS,
-            expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
-            output_folder=output_folder,
-            logger=logger,
-        )
-        synchronize()
 
 
 def main():
@@ -402,10 +387,7 @@ def main():
     # save overloaded model config in the output directory
     save_config(cfg, output_config_path)
 
-    model = train(cfg, local_rank, args.distributed, logger)
-
-    if not args.skip_test:
-        run_test(cfg, model, args.distributed, logger)
+    train(cfg, local_rank, args.distributed, logger)
 
 
 if __name__ == "__main__":
