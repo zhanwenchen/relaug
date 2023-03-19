@@ -40,7 +40,7 @@ error_check()
 
 }
 
-export PROJECT_DIR=/home/zhanwen/relaug
+export PROJECT_DIR=/localtmp/pct4et/relaug
 export MODEL_NAME="${SLURM_JOB_ID}_${SLURM_JOB_NAME}"
 export LOGDIR=${PROJECT_DIR}/log
 MODEL_DIRNAME=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
@@ -51,12 +51,12 @@ else
   # Experiment variables
   export PREDICTOR=VCTreePredictor
   export CONFIG_FILE=configs/e2e_relation_X_101_32_8_FPN_1x_vctree.yaml
-  export USE_SEMANTIC=True
-  export USE_GRAFT=False
+  export USE_SEMANTIC=False
+  export USE_GRAFT=True
   export STRATEGY='cooccurrence-pred_cov'
   export BOTTOM_K=30
   export NUM2AUG=4
-  export MAX_BATCHSIZE_AUG=16
+  export MAX_BATCHSIZE_AUG=24
   if [ "${USE_SEMANTIC}" = True ]; then
       export BATCH_SIZE_PER_GPU=$((${MAX_BATCHSIZE_AUG} / 2))
   else
@@ -75,11 +75,11 @@ else
 
   # Paths and configss
   export WEIGHT="''"
-  export DATASETS_DIR=/home/zhanwen/datasets
+  export DATASETS_DIR=/localtmp/pct4et/datasets
   export ALL_EDGES_FPATH=${DATASETS_DIR}/visual_genome/gbnet/all_edges.pkl
 
   # System variables
-  export CUDA_VISIBLE_DEVICES=0
+  export CUDA_VISIBLE_DEVICES=6,7,8,9
   export NUM_GPUS=$(echo ${CUDA_VISIBLE_DEVICES} | tr -cd , | wc -c); ((NUM_GPUS++))
   export BATCH_SIZE=$((${NUM_GPUS} * ${BATCH_SIZE_PER_GPU}))
   export PORT=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
