@@ -240,7 +240,7 @@ class VGDataset(torch.utils.data.Dataset):
                 bg_matrix[o1, o2] += 1
             if use_graft:
                 return fg_matrix, bg_matrix, stats
-        return fg_matrix, bg_matrix
+        return fg_matrix, bg_matrix, None
 
 
 def box_filter(boxes, must_overlap=False):
