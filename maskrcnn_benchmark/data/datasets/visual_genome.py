@@ -16,7 +16,7 @@ BOX_SCALE = 1024  # Scale at which we have the boxes
 
 class VGDataset(torch.utils.data.Dataset):
 
-    def __init__(self, split, img_dir, roidb_file, dict_file, image_file, transforms=None,
+    def __init__(self, split, img_dir, roidb_file, dict_file, image_file, use_graft, transforms=None,
                 filter_empty_rels=True, num_im=-1, num_val_im=5000,
                 filter_duplicate_rels=True, filter_non_overlap=True, flip_aug=False, custom_eval=False, custom_path=''):
         """
@@ -66,6 +66,9 @@ class VGDataset(torch.utils.data.Dataset):
             self.filenames = [self.filenames[i] for i in np.where(self.split_mask)[0]]
             self.img_info = [self.img_info[i] for i in np.where(self.split_mask)[0]]
 
+        print(f'VGDataset: use_graft={use_graft}')
+        self.use_graft = use_graft
+
 
     def __getitem__(self, index):
         #if self.split == 'train':
@@ -77,13 +80,13 @@ class VGDataset(torch.utils.data.Dataset):
             if self.transforms is not None:
                 img, target = self.transforms(img, target)
             return img, target, index
-        
+
         img = Image.open(self.filenames[index]).convert("RGB")
         if img.size[0] != self.img_info[index]['width'] or img.size[1] != self.img_info[index]['height']:
             print('='*20, ' ERROR index ', str(index), ' ', str(img.size), ' ', str(self.img_info[index]['width']), ' ', str(self.img_info[index]['height']), ' ', '='*20)
 
         flip_img = (random.random() > 0.5) and self.flip_aug and (self.split == 'train')
-        
+
         target = self.get_groundtruth(index, flip_img)
 
         if flip_img:
@@ -96,7 +99,7 @@ class VGDataset(torch.utils.data.Dataset):
 
 
     def get_statistics(self):
-        fg_matrix, bg_matrix = self.get_VG_statistics(must_overlap=True)
+        fg_matrix, bg_matrix, stats = self.get_VG_statistics(must_overlap=True)
         eps = 1e-3
         bg_matrix += 1
         fg_matrix[:, :, 0] = bg_matrix
@@ -108,6 +111,7 @@ class VGDataset(torch.utils.data.Dataset):
             'obj_classes': self.ind_to_classes,
             'rel_classes': self.ind_to_predicates,
             'att_classes': self.ind_to_attributes,
+            'stats': stats,
         }
         return result
 
@@ -161,7 +165,7 @@ class VGDataset(torch.utils.data.Dataset):
                 all_rel_sets[(o0, o1)].append(r)
             relation = [(k[0], k[1], np.random.choice(v)) for k,v in all_rel_sets.items()]
             relation = np.array(relation, dtype=np.int32)
-        
+
         # add relation to target
         num_box = len(target)
         relation_map = torch.zeros((num_box, num_box), dtype=torch.int64)
@@ -193,22 +197,50 @@ class VGDataset(torch.utils.data.Dataset):
         fg_matrix = np.zeros((num_obj_classes, num_obj_classes, num_rel_classes), dtype=np.int64)
         bg_matrix = np.zeros((num_obj_classes, num_obj_classes), dtype=np.int64)
 
+        gt_classes = self.gt_classes
+        relationships = self.relationships
+        use_graft = self.use_graft is True
+        if use_graft:
+            stats = []
+            get_groundtruth = self.get_groundtruth
+        else:
+            gt_boxes = self.gt_boxes
+
         for ex_ind in tqdm(range(len(self))):
-            gt_classes = self.gt_classes[ex_ind].copy()
-            gt_relations = self.relationships[ex_ind].copy()
-            gt_boxes = self.gt_boxes[ex_ind].copy()
+            # NOTE: the gt_boxes are right. The images haven't been transformed yet.
+            gt_classes = gt_classes[ex_ind]
+            gt_relations = relationships[ex_ind]
+            if use_graft:
+                target = get_groundtruth(ex_ind, evaluation=True, flip_img=False)
+                bbox = target.bbox.numpy()
+                del target
+                keep = (bbox[:, 3] > bbox[:, 1]) & (bbox[:, 2] > bbox[:, 0])
+                gt_boxes = bbox.astype(int)
+                del bbox
+            else:
+                gt_boxes = gt_boxes[ex_ind].numpy()
 
             # For the foreground, we'll just look at everything
-            o1o2 = gt_classes[gt_relations[:, :2]]
-            for (o1, o2), gtr in zip(o1o2, gt_relations[:,2]):
-                fg_matrix[o1, o2, gtr] += 1
+            o1o2_indices = gt_relations[:, :2]
+            o1o2 = gt_classes[o1o2_indices] # Regardless
+            # QUESTION: are indicies and o1o2 even? Yes.
+            assert len(o1o2_indices) == len(o1o2)
+            for idx, ((o1_idx, o2_idx), (o1, o2), gtr) in enumerate(zip(o1o2_indices, o1o2, gt_relations[:, 2])):
+                fg_matrix[o1, o2, gtr] += 1 # Keep shouldn't affect simple stats
+                if use_graft:
+                    if keep[o1_idx] and keep[o2_idx]:
+                        gt_box_o1 = gt_boxes[o1_idx]
+                        gt_box_o2 = gt_boxes[o2_idx]
+                        row = [ex_ind, o1_idx, o1] + list(gt_box_o1) + [o2_idx, o2] + list(gt_box_o2) + [idx, gtr]
+                        stats.append(row)
             # For the background, get all of the things that overlap.
             o1o2_total = gt_classes[np.array(
                 box_filter(gt_boxes, must_overlap=must_overlap), dtype=int)]
             for (o1, o2) in o1o2_total:
                 bg_matrix[o1, o2] += 1
-
-        return fg_matrix, bg_matrix
+        if use_graft:
+            return fg_matrix, bg_matrix, stats
+        return fg_matrix, bg_matrix, None
 
 
 def box_filter(boxes, must_overlap=False):

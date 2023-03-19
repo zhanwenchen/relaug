@@ -154,6 +154,7 @@ class DatasetCatalog(object):
             for k, v in args.items():
                 args[k] = os.path.join(data_dir, v)
             args['split'] = split
+            args['use_graft'] = cfg.SOLVER.AUGMENTATION.USE_GRAFT
             # IF MODEL.RELATION_ON is True, filter images with empty rels
             # else set filter to False, because we need all images for pretraining detector
             args['filter_non_overlap'] = (not cfg.MODEL.ROI_RELATION_HEAD.USE_GT_BOX) and cfg.MODEL.RELATION_ON and cfg.MODEL.ROI_RELATION_HEAD.REQUIRE_BOX_OVERLAP
