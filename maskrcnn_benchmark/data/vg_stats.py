@@ -21,8 +21,7 @@ class VGStats(metaclass=Singleton):
     rel_classes: List[str] = None
     att_classes: List[str] = None
     stats: List[list] = None
-    dataset: Dataset = None
 
     def __post_init__(self):
-        if self.fg_matrix is None or self.pred_dist is None or self.obj_classes is None or self.rel_classes is None or self.dataset is None:
+        if self.fg_matrix is None or self.pred_dist is None or self.obj_classes is None or self.rel_classes is None:
             raise ValueError('None')

@@ -44,7 +44,6 @@ class GraftAugmenterDataset(Dataset):
             statistics['obj_classes'],
             statistics['rel_classes'],
             statistics['att_classes'],
-            dataset,
             stats,
         )
         print('GraftAugmenterDataset.__init__: finished creating VGStats singleton')
