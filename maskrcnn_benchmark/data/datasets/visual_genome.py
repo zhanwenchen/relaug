@@ -66,7 +66,7 @@ class VGDataset(torch.utils.data.Dataset):
             self.filenames = [self.filenames[i] for i in np.where(self.split_mask)[0]]
             self.img_info = [self.img_info[i] for i in np.where(self.split_mask)[0]]
 
-
+        print(f'VGDataset: use_graft={use_graft}')
         self.use_graft = use_graft
 
 
@@ -238,8 +238,8 @@ class VGDataset(torch.utils.data.Dataset):
                 box_filter(gt_boxes, must_overlap=must_overlap), dtype=int)]
             for (o1, o2) in o1o2_total:
                 bg_matrix[o1, o2] += 1
-            if use_graft:
-                return fg_matrix, bg_matrix, stats
+        if use_graft:
+            return fg_matrix, bg_matrix, stats
         return fg_matrix, bg_matrix, None
 
 
