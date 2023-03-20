@@ -208,34 +208,34 @@ class VGDataset(torch.utils.data.Dataset):
 
         for ex_ind in tqdm(range(len(self))):
             # NOTE: the gt_boxes are right. The images haven't been transformed yet.
-            gt_classes = gt_classes[ex_ind]
-            gt_relations = relationships[ex_ind]
+            gt_classes_i = gt_classes[ex_ind]
+            gt_relations_i = relationships[ex_ind]
             if use_graft:
                 target = get_groundtruth(ex_ind, evaluation=True, flip_img=False)
                 bbox = target.bbox.numpy()
                 del target
                 keep = (bbox[:, 3] > bbox[:, 1]) & (bbox[:, 2] > bbox[:, 0])
-                gt_boxes = bbox.astype(int)
+                gt_boxes_i = bbox.astype(int)
                 del bbox
             else:
-                gt_boxes = gt_boxes[ex_ind].numpy()
+                gt_boxes_i = gt_boxes[ex_ind].numpy()
 
             # For the foreground, we'll just look at everything
-            o1o2_indices = gt_relations[:, :2]
-            o1o2 = gt_classes[o1o2_indices] # Regardless
+            o1o2_indices = gt_relations_i[:, :2]
+            o1o2 = gt_classes_i[o1o2_indices] # Regardless
             # QUESTION: are indicies and o1o2 even? Yes.
             assert len(o1o2_indices) == len(o1o2)
-            for idx, ((o1_idx, o2_idx), (o1, o2), gtr) in enumerate(zip(o1o2_indices, o1o2, gt_relations[:, 2])):
+            for idx, ((o1_idx, o2_idx), (o1, o2), gtr) in enumerate(zip(o1o2_indices, o1o2, gt_relations_i[:, 2])):
                 fg_matrix[o1, o2, gtr] += 1 # Keep shouldn't affect simple stats
                 if use_graft:
                     if keep[o1_idx] and keep[o2_idx]:
-                        gt_box_o1 = gt_boxes[o1_idx]
-                        gt_box_o2 = gt_boxes[o2_idx]
+                        gt_box_o1 = gt_boxes_i[o1_idx]
+                        gt_box_o2 = gt_boxes_i[o2_idx]
                         row = [ex_ind, o1_idx, o1] + list(gt_box_o1) + [o2_idx, o2] + list(gt_box_o2) + [idx, gtr]
                         stats.append(row)
             # For the background, get all of the things that overlap.
-            o1o2_total = gt_classes[np.array(
-                box_filter(gt_boxes, must_overlap=must_overlap), dtype=int)]
+            o1o2_total = gt_classes_i[np.array(
+                box_filter(gt_boxes_i, must_overlap=must_overlap), dtype=int)]
             for (o1, o2) in o1o2_total:
                 bg_matrix[o1, o2] += 1
         if use_graft:
