@@ -3,7 +3,7 @@
 SLURM_JOB_NAME=motif_none_none_predcls_legion_1e3 # TODO
 
 export PROJECT_DIR=/home/zhanwen/relaug
-source ${PROJECT_DIR}/shared_functions/utils.sh
+source ${PROJECT_DIR}/scripts/shared_functions/utils.sh
 SLURM_JOB_ID=$(timestamp)
 export MODEL_NAME="${SLURM_JOB_ID}_${SLURM_JOB_NAME}"
 export LOGDIR=${PROJECT_DIR}/log

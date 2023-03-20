@@ -16,7 +16,7 @@
 
 
 export PROJECT_DIR=/scratch/pct4et/relaug
-source ${PROJECT_DIR}/shared_functions/utils.sh
+source ${PROJECT_DIR}/scripts/shared_functions/utils.sh
 export MODEL_NAME="${SLURM_JOB_ID}_${SLURM_JOB_NAME}"
 export LOGDIR=${PROJECT_DIR}/log
 MODEL_DIRNAME=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/

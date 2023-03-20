@@ -3,7 +3,7 @@
 SLURM_JOB_NAME=vctree_none_semantic_visual_sggen_4GPU_labx_1e3
 
 export PROJECT_DIR=/localtmp/pct4et/relaug
-source ${PROJECT_DIR}/shared_functions/utils.sh
+source ${PROJECT_DIR}/scripts/shared_functions/utils.sh
 SLURM_JOB_ID=$(timestamp)
 export MODEL_NAME="${SLURM_JOB_ID}_${SLURM_JOB_NAME}"
 export LOGDIR=${PROJECT_DIR}/log
