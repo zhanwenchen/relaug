@@ -20,7 +20,7 @@ else
   export STRATEGY="''"
   export BOTTOM_K=-1
   export NUM2AUG=-1
-  export MAX_BATCHSIZE_AUG=20
+  export MAX_BATCHSIZE_AUG=16
   if [ "${USE_SEMANTIC}" = True ]; then
       export BATCH_SIZE_PER_GPU=$((${MAX_BATCHSIZE_AUG} / 2))
   else
