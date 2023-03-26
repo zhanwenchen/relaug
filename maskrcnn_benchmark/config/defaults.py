@@ -603,7 +603,7 @@ _C.PATHS_DATA = os.path.join(os.path.dirname(__file__), "../data/datasets")
 # ---------------------------------------------------------------------------- #
 
 # Precision of input, allowable: (float32, float16)
-_C.DTYPE = "float32"
+_C.DTYPE = "float16"
 
 # Enable verbosity in apex.amp
 _C.AMP_VERBOSE = False
