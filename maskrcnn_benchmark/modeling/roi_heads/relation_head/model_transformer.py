@@ -2,6 +2,9 @@
 Based on the implementation of https://github.com/jadore801120/attention-is-all-you-need-pytorch
 """
 import torch
+from torch import (
+    int64 as torch_int64,
+)
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
@@ -209,13 +212,13 @@ class TransformerContext(nn.Module):
         self.hidden_dim = self.cfg.MODEL.ROI_RELATION_HEAD.CONTEXT_HIDDEN_DIM
         self.nms_thresh = self.cfg.TEST.RELATION.LATER_NMS_PREDICTION_THRES
 
-        self.dropout_rate = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.DROPOUT_RATE   
-        self.obj_layer = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.OBJ_LAYER      
-        self.edge_layer = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.REL_LAYER        
-        self.num_head = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.NUM_HEAD         
-        self.inner_dim = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.INNER_DIM     
-        self.k_dim = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.KEY_DIM         
-        self.v_dim = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.VAL_DIM    
+        self.dropout_rate = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.DROPOUT_RATE
+        self.obj_layer = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.OBJ_LAYER
+        self.edge_layer = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.REL_LAYER
+        self.num_head = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.NUM_HEAD
+        self.inner_dim = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.INNER_DIM
+        self.k_dim = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.KEY_DIM
+        self.v_dim = self.cfg.MODEL.ROI_RELATION_HEAD.TRANSFORMER.VAL_DIM
 
 
         # the following word embedding layer should be initalize by glove.6B before using
@@ -234,16 +237,19 @@ class TransformerContext(nn.Module):
         self.lin_obj = nn.Linear(self.in_channels + self.embed_dim + 128, self.hidden_dim)
         self.lin_edge = nn.Linear(self.embed_dim + self.hidden_dim + self.in_channels, self.hidden_dim)
         self.out_obj = nn.Linear(self.hidden_dim, self.num_obj_cls)
-        self.context_obj = TransformerEncoder(self.obj_layer, self.num_head, self.k_dim, 
+        self.context_obj = TransformerEncoder(self.obj_layer, self.num_head, self.k_dim,
                                                 self.v_dim, self.hidden_dim, self.inner_dim, self.dropout_rate)
-        self.context_edge = TransformerEncoder(self.edge_layer, self.num_head, self.k_dim, 
+        self.context_edge = TransformerEncoder(self.edge_layer, self.num_head, self.k_dim,
                                                 self.v_dim, self.hidden_dim, self.inner_dim, self.dropout_rate)
 
-    
+
     def forward(self, roi_features, proposals, logger=None):
         # labels will be used in DecoderRNN during training
         use_gt_label = self.training or self.cfg.MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL
         obj_labels = cat([proposal.get_field("labels") for proposal in proposals], dim=0) if use_gt_label else None
+
+        if obj_labels is not None:
+            obj_labels = obj_labels.to(torch_int64, non_blocking=True)
 
         # label/logits embedding will be used as input
         if self.cfg.MODEL.ROI_RELATION_HEAD.USE_GT_OBJECT_LABEL:
@@ -251,7 +257,7 @@ class TransformerContext(nn.Module):
         else:
             obj_logits = cat([proposal.get_field("predict_logits") for proposal in proposals], dim=0).detach()
             obj_embed = F.softmax(obj_logits, dim=1) @ self.obj_embed1.weight
-        
+
         # bbox embedding will be used as input
         assert proposals[0].mode == 'xyxy'
         pos_embed = self.bbox_embed(encode_box_info(proposals))
