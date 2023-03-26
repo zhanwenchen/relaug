@@ -218,7 +218,7 @@ class VGDataset(torch.utils.data.Dataset):
                 gt_boxes_i = bbox.astype(int)
                 del bbox
             else:
-                gt_boxes_i = gt_boxes[ex_ind].numpy()
+                gt_boxes_i = gt_boxes[ex_ind]
 
             # For the foreground, we'll just look at everything
             o1o2_indices = gt_relations_i[:, :2]
@@ -244,7 +244,7 @@ class VGDataset(torch.utils.data.Dataset):
 
 
 def box_filter(boxes, must_overlap=False):
-    """ Only include boxes that overlap as possible relations. 
+    """ Only include boxes that overlap as possible relations.
     If no overlapping boxes, use all of them."""
     n_cands = boxes.shape[0]
 
@@ -294,7 +294,7 @@ def correct_img_info(img_dir, image_file):
             print(img)
             data[i]['width'] = img_data.size[0]
             data[i]['height'] = img_data.size[1]
-    with open(image_file, 'w') as outfile:  
+    with open(image_file, 'w') as outfile:
         json.dump(data, outfile)
 
 def load_info(dict_file, add_bg=True):
@@ -324,7 +324,7 @@ def load_image_filenames(img_dir, image_file):
     Parameters:
         image_file: JSON file. Elements contain the param "image_id".
         img_dir: directory where the VisualGenome images are located
-    Return: 
+    Return:
         List of filenames corresponding to the good images
     """
     with open(image_file, 'r') as f:
@@ -357,12 +357,12 @@ def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter
         num_val_im: Number of validation images
         filter_empty_rels: (will be filtered otherwise.)
         filter_non_overlap: If training, filter images that dont overlap.
-    Return: 
+    Return:
         image_index: numpy array corresponding to the index of images we're using
-        boxes: List where each element is a [num_gt, 4] array of ground 
+        boxes: List where each element is a [num_gt, 4] array of ground
                     truth boxes (x1, y1, x2, y2)
         gt_classes: List where each element is a [num_gt] array of classes
-        relationships: List where each element is a [num_r, 3] array of 
+        relationships: List where each element is a [num_r, 3] array of
                     (box_ind_1, box_ind_2, predicate) relationships
     """
     roi_h5 = h5py.File(roidb_file, 'r')
