@@ -1,6 +1,10 @@
 import os
 import sys
 import torch
+from torch import (
+    as_tensor as torch_as_tensor,
+    int64 as torch_int64,
+)
 import h5py
 import json
 from PIL import Image
@@ -152,7 +156,7 @@ class VGDataset(torch.utils.data.Dataset):
             box[:,2] = new_xmax
         target = BoxList(box, (w, h), 'xyxy') # xyxy
 
-        target.add_field("labels", torch.from_numpy(self.gt_classes[index]))
+        target.add_field("labels", torch_as_tensor(self.gt_classes[index], dtype=torch_int64))
         target.add_field("attributes", torch.from_numpy(self.gt_attributes[index]))
 
         relation = self.relationships[index].copy() # (num_rel, 3)
