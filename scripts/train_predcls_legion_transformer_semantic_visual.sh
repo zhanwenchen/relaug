@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SLURM_JOB_NAME=transformer_none_semantic_visual_predcls_legion_1e3
+SLURM_JOB_NAME=transformer_none_semantic_visual_predcls_legion_1e-4
 
 export PROJECT_DIR=/home/zhanwen/relaug
 source ${PROJECT_DIR}/scripts/shared_functions/utils.sh
@@ -34,7 +34,7 @@ else
 
   # Experiment hyperparams
   export MAX_ITER=50000
-  export LR=1e-3
+  export LR=1e-4
   export SEED=1234
 
   # Paths and configss

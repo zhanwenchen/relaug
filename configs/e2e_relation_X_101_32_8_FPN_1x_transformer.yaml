@@ -97,6 +97,7 @@ DATASETS:
   TRAIN: ("VG_stanford_filtered_with_attribute_train",)
   VAL: ("VG_stanford_filtered_with_attribute_val",)
   TEST: ("VG_stanford_filtered_with_attribute_test",)
+DTYPE: float32
 DATALOADER:
   SIZE_DIVISIBILITY: 32
 SOLVER:
@@ -113,7 +114,7 @@ SOLVER:
   PRINT_GRAD_FREQ: 4000
   SCHEDULE:
     # the following paramters are only used for WarmupReduceLROnPlateau
-    TYPE: "WarmupReduceLROnPlateau"    # WarmupMultiStepLR, WarmupReduceLROnPlateau
+    TYPE: "WarmupMultiStepLR"    # WarmupMultiStepLR, WarmupReduceLROnPlateau
     PATIENCE: 2
     THRESHOLD: 0.001
     COOLDOWN: 0
