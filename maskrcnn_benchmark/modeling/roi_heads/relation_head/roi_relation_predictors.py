@@ -33,9 +33,9 @@ class TransformerPredictor(nn.Module):
 
         assert in_channels is not None
         self.use_vision = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_VISION
-        self.use_bias = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_BIAS
-        self.with_transfer = config.MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER
-        self.with_cleanclf = config.MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER
+        self.use_bias = use_bias = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_BIAS
+        self.with_transfer = with_transfer = config.MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER
+        self.with_cleanclf = with_cleanclf = config.MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER
         # load class dict
         vg_stats = VGStats()
         obj_classes, rel_classes, att_classes = vg_stats.obj_classes, vg_stats.rel_classes, vg_stats.att_classes
@@ -60,7 +60,7 @@ class TransformerPredictor(nn.Module):
         else:
             self.union_single_not_match = False
            
-        if self.use_bias:
+        if use_bias:
             # convey statistics into FrequencyBias to avoid loading again
             freq_bias = FrequencyBias(config, vg_stats.pred_dist)
             if self.with_cleanclf:
@@ -74,14 +74,14 @@ class TransformerPredictor(nn.Module):
         layer_init(ctx_compress, xavier=True)
         
         # the transfer classifier
-        if self.with_cleanclf:
+        if with_cleanclf:
             self.rel_compress_clean = rel_compress
             self.ctx_compress_clean = ctx_compress
         else:
             self.rel_compress = rel_compress
             self.ctx_compress = ctx_compress
 
-        if self.with_transfer:
+        if with_transfer:
             print("Using Confusion Matrix Transfer!")
             pred_adj_np = np.load('./misc/conf_mat_freq_train.npy')
             pred_adj_np[0, :] = 0.0
