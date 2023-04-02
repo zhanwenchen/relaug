@@ -9,6 +9,7 @@ from torch.nn import functional as F
 from maskrcnn_benchmark.layers import smooth_l1_loss, kl_div_loss, entropy_loss, Label_Smoothing_Regression
 from maskrcnn_benchmark.modeling.utils import cat
 from maskrcnn_benchmark.data import VGStats
+from maskrcnn_benchmark.layers.gcn._utils import adj_normalize
 from .model_msg_passing import IMPContext
 from .model_vtranse import VTransEFeature
 from .model_vctree import VCTreeLSTMContext
@@ -27,12 +28,14 @@ class TransformerPredictor(nn.Module):
         self.num_obj_cls = config.MODEL.ROI_BOX_HEAD.NUM_CLASSES
         self.num_att_cls = config.MODEL.ROI_ATTRIBUTE_HEAD.NUM_ATTRIBUTES
         self.num_rel_cls = config.MODEL.ROI_RELATION_HEAD.NUM_CLASSES
-        
+
+        devices = config.MODEL.DEVICE
+
         assert in_channels is not None
-        num_inputs = in_channels
         self.use_vision = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_VISION
         self.use_bias = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_BIAS
-
+        self.with_transfer = config.MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER
+        self.with_cleanclf = config.MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER
         # load class dict
         vg_stats = VGStats()
         obj_classes, rel_classes, att_classes = vg_stats.obj_classes, vg_stats.rel_classes, vg_stats.att_classes
@@ -46,14 +49,8 @@ class TransformerPredictor(nn.Module):
         self.hidden_dim = config.MODEL.ROI_RELATION_HEAD.CONTEXT_HIDDEN_DIM
         self.pooling_dim = config.MODEL.ROI_RELATION_HEAD.CONTEXT_POOLING_DIM
         self.post_emb = nn.Linear(self.hidden_dim, self.hidden_dim * 2)
-        self.post_cat = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
-        self.rel_compress = nn.Linear(self.pooling_dim, self.num_rel_cls)
-        self.ctx_compress = nn.Linear(self.hidden_dim * 2, self.num_rel_cls)
-
-        # initialize layer parameters 
         layer_init(self.post_emb, 10.0 * (1.0 / self.hidden_dim) ** 0.5, normal=True)
-        layer_init(self.rel_compress, xavier=True)
-        layer_init(self.ctx_compress, xavier=True)
+        self.post_cat = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
         layer_init(self.post_cat, xavier=True)
         
         if self.pooling_dim != config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM:
@@ -62,10 +59,38 @@ class TransformerPredictor(nn.Module):
             layer_init(self.up_dim, xavier=True)
         else:
             self.union_single_not_match = False
-
+           
         if self.use_bias:
             # convey statistics into FrequencyBias to avoid loading again
-            self.freq_bias = FrequencyBias(config, vg_stats.pred_dist)
+            freq_bias = FrequencyBias(config, vg_stats.pred_dist)
+            if self.with_cleanclf:
+                self.freq_bias_clean = freq_bias
+            else:
+                self.freq_bias = freq_bias
+
+        rel_compress = nn.Linear(self.pooling_dim, self.num_rel_cls)
+        layer_init(rel_compress, xavier=True)
+        ctx_compress = nn.Linear(self.hidden_dim * 2, self.num_rel_cls)
+        layer_init(ctx_compress, xavier=True)
+        
+        # the transfer classifier
+        if self.with_cleanclf:
+            self.rel_compress_clean = rel_compress
+            self.ctx_compress_clean = ctx_compress
+        else:
+            self.rel_compress = rel_compress
+            self.ctx_compress = ctx_compress
+
+        if self.with_transfer:
+            print("Using Confusion Matrix Transfer!")
+            pred_adj_np = np.load('./misc/conf_mat_freq_train.npy')
+            pred_adj_np[0, :] = 0.0
+            pred_adj_np[:, 0] = 0.0
+            pred_adj_np[0, 0] = 1.0
+            # adj_i_j means the baseline outputs category j, but the ground truth is i.
+            pred_adj_np /= (pred_adj_np.sum(-1)[:, None] + 1e-8)
+            pred_adj_np = adj_normalize(pred_adj_np)
+            self.pred_adj_nor = torch.as_tensor(pred_adj_np, dtype=torch.float32, device=devices)
 
     def forward(self, proposals, rel_pair_idxs, rel_labels, rel_binarys, roi_features, union_features, logger=None):
         """
@@ -93,7 +118,7 @@ class TransformerPredictor(nn.Module):
         head_reps = head_rep.split(num_objs, dim=0)
         tail_reps = tail_rep.split(num_objs, dim=0)
         obj_preds = obj_preds.split(num_objs, dim=0)
-        
+
         # from object level feature to pairwise relation level feature
         prod_reps = []
         pair_preds = []
@@ -112,11 +137,27 @@ class TransformerPredictor(nn.Module):
             else:
                 visual_rep = ctx_gate * union_features
 
-        rel_dists = self.rel_compress(visual_rep) + self.ctx_compress(prod_rep)
-                
-        # use frequence bias
+        # the transfer classifier
+        if self.with_cleanclf:
+            rel_compress = self.rel_compress_clean
+            ctx_compress = self.ctx_compress_clean
+            if self.use_bias:
+                freq_bias = self.freq_bias_clean
+        else:
+            rel_compress = self.rel_compress
+            ctx_compress = self.ctx_compress
+            if self.use_bias:
+                freq_bias = self.freq_bias
+
+        rel_dists = rel_compress(visual_rep) + ctx_compress(prod_rep)
+
         if self.use_bias:
-            rel_dists = rel_dists + self.freq_bias.index_with_labels(pair_pred)
+            freq_dists_bias = freq_bias.index_with_labels(pair_pred)
+            freq_dists_bias = F.dropout(freq_dists_bias, 0.3, training=self.training)
+            rel_dists += freq_dists_bias
+
+        if self.with_transfer:
+            rel_dists = (self.pred_adj_nor @ rel_dists.T).T
 
         obj_dists = obj_dists.split(num_objs, dim=0)
         rel_dists = rel_dists.split(num_rels, dim=0)
