@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MODEL_NAME_BASE=# 44709300_motif_pairwise_predcls_4GPU_riv_1 # TODO: change this.
-ITERATION=# 0014000 # TODO: change this. 7 digits
+MODEL_NAME_BASE= # 44709300_motif_pairwise_predcls_4GPU_riv_1 # TODO: change this.
+ITERATION= # 0014000 # TODO: change this. 7 digits
 USE_CONFIG_AUGS=False # TODO: change this.
 export CUDA_VISIBLE_DEVICES=1,2,3,4 # TODO: change this.
 
