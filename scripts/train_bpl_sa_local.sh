@@ -52,7 +52,6 @@ if [ -d "${MODEL_DIRNAME_BASE}" ]; then
       torchrun --master_port ${PORT} --nproc_per_node=${NUM_GPUS} \
               ${PROJECT_DIR}/tools/relation_train_net.py \
               --config-file "${MODEL_DIRNAME_BASE}/config.yml" \
-              SOLVER.AUGMENTATION.USE_SEMANTIC ${USE_SEMANTIC} \
               SOLVER.AUGMENTATION.USE_GRAFT False \
               SOLVER.AUGMENTATION.USE_SEMANTIC False \
               MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER True \
