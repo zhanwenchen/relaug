@@ -32,6 +32,8 @@ from maskrcnn_benchmark.utils.logger import setup_logger, debug_print
 from maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 from maskrcnn_benchmark.utils.relation_augmentation import RelationAugmenter
+import numpy as np
+import random
 
 # See if we can use apex.DistributedDataParallel instead of the torch default,
 # and enable mixed-precision via apex.amp
@@ -40,6 +42,16 @@ try:
 except ImportError:
     raise ImportError('Use APEX for multi-precision via apex.amp')
 
+
+PRED_STR = 'roi_heads.relation.predictor'
+
+
+def setup_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
 
 def train(cfg, local_rank, distributed, logger):
     debug_print(logger, 'prepare training')
@@ -70,14 +82,19 @@ def train(cfg, local_rank, distributed, logger):
     model = build_detection_model(cfg)
     debug_print(logger, 'end model construction')
 
+    clean_classifier = cfg.MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER
     # modules that should be always set in eval mode
     # their eval() method should be called after model.train() is called
     eval_modules = (model.rpn, model.backbone, model.roi_heads.box,)
 
-    fix_eval_modules(eval_modules)
+    if clean_classifier:
+        fix_eval_modules_no_classifier(model, with_grad_name='_clean')
+    else:
+        fix_eval_modules(eval_modules)
 
     # NOTE, we slow down the LR of the layers start with the names in slow_heads
-    if cfg.MODEL.ROI_RELATION_HEAD.PREDICTOR == "IMPPredictor":
+    predictor = cfg.MODEL.ROI_RELATION_HEAD.PREDICTOR
+    if predictor == "IMPPredictor":
         slow_heads = ["roi_heads.relation.box_feature_extractor",
                       "roi_heads.relation.union_feature_extractor.feature_extractor",]
     else:
@@ -119,7 +136,7 @@ def train(cfg, local_rank, distributed, logger):
     )
     # if there is certain checkpoint in output_dir, load it, else load pretrained detector
     if checkpointer.has_checkpoint():
-        extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT,
+        extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT, 
                                        update_schedule=cfg.SOLVER.UPDATE_SCHEDULE_DURING_LOAD)
         arguments.update(extra_checkpoint_data)
         if arguments["iteration"] != 0:
@@ -127,6 +144,36 @@ def train(cfg, local_rank, distributed, logger):
     else:
         # load_mapping is only used when we init current model from detection model.
         checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT, with_optim=False, load_mapping=load_mapping)
+        # load base model
+        if clean_classifier:
+            debug_print(logger, 'end load checkpointer')
+            
+            if predictor == "TransformerPredictor":
+                load_mapping_classifier = {
+                    f"{PRED_STR}.rel_compress_clean": f"{PRED_STR}.rel_compress",
+                    f"{PRED_STR}.ctx_compress_clean": f"{PRED_STR}.ctx_compress",
+                    f"{PRED_STR}.freq_bias_clean": f"{PRED_STR}.freq_bias",
+                }
+            elif predictor == "VCTreePredictor":
+                load_mapping_classifier = {
+                    f"{PRED_STR}.ctx_compress_clean": f"{PRED_STR}.ctx_compress",
+                    f"{PRED_STR}.freq_bias_clean": f"{PRED_STR}.freq_bias",
+                    f"{PRED_STR}.post_cat_clean": f"{PRED_STR}.post_cat",
+                }
+            elif predictor == "MotifPredictor":
+                load_mapping_classifier = {
+                    f"{PRED_STR}.rel_compress_clean": f"{PRED_STR}.rel_compress",
+                    f"{PRED_STR}.freq_bias_clean": f"{PRED_STR}.freq_bias",
+                    f"{PRED_STR}.post_cat_clean": f"{PRED_STR}.post_cat",
+                }
+            #load_mapping_classifier = {}
+            if cfg.MODEL.PRETRAINED_MODEL_CKPT != "" :
+                debug_print(logger, 'load PRETRAINED_MODEL_CKPT!!!!')
+                checkpointer.load(cfg.MODEL.PRETRAINED_MODEL_CKPT, update_schedule=False,
+                                 with_optim=False, load_mapping=load_mapping_classifier)
+    # debug_print(logger, 'load PRETRAINED_MODEL_CKPT!!!!')
+    # checkpointer.load(cfg.MODEL.PRETRAINED_MODEL_CKPT, update_schedule=False,
+    #                  with_optim=False)
     debug_print(logger, 'end load checkpointer')
 
     use_semantic = cfg.SOLVER.AUGMENTATION.USE_SEMANTIC
@@ -153,11 +200,12 @@ def train(cfg, local_rank, distributed, logger):
     output_folders_test = [None] * len(dataset_names_test)
     if cfg.SOLVER.PRE_VAL:
         logger.info("Validate before training")
-        run_val(cfg, model, val_data_loaders, distributed, logger, dataset_names_val, output_folders_val)
+        run_val(cfg, model, val_data_loaders, distributed, logger)
 
     logger.info("Start training")
     meters = MetricLogger(delimiter="  ")
     max_iter = len(train_data_loader)
+    logger.info("Number iteration: "+str(max_iter))
     start_iter = arguments["iteration"]
     start_training_time = time.time()
     end = time.time()
@@ -189,7 +237,10 @@ def train(cfg, local_rank, distributed, logger):
         arguments["iteration"] = iteration
 
         model.train()
-        fix_eval_modules(eval_modules)
+        if clean_classifier:
+            fix_eval_modules_no_classifier(model, with_grad_name='_clean')
+        else :
+            fix_eval_modules(eval_modules)
 
         images = images.to(device)
         targets = [target.to(device) for target in targets]
@@ -285,10 +336,16 @@ def fix_eval_modules(eval_modules):
             param.requires_grad = False
         # DO NOT use module.eval(), otherwise the module will be in the test mode, i.e., all self.training condition is set to False
 
+def fix_eval_modules_no_classifier(module, with_grad_name='_clean'):
+    #for module in eval_modules:
+    for name, param in module.named_parameters():
+        if with_grad_name not in name:
+            param.requires_grad = False
+            # DO NOT use module.eval(), otherwise the module will be in the test mode, i.e., all self.training condition is set to False
+
 def run_val(cfg, model, val_data_loaders, distributed, logger, dataset_names, output_folders):
     if distributed:
         model = model.module
-    torch.cuda.empty_cache()
     iou_types = ("bbox",)
     if cfg.MODEL.MASK_ON:
         iou_types = iou_types + ("segm",)
@@ -323,11 +380,11 @@ def run_val(cfg, model, val_data_loaders, distributed, logger, dataset_names, ou
     valid_result = gathered_result[gathered_result>=0]
     val_result = float(valid_result.mean())
     del gathered_result, valid_result
-    torch.cuda.empty_cache()
     return val_result
 
 
 def main():
+    setup_seed(int(os_environ['SEED']))
     parser = argparse.ArgumentParser(description="PyTorch Relation Detection Training")
     parser.add_argument(
         "--config-file",
