@@ -14,19 +14,6 @@ export LOGDIR=${PROJECT_DIR}/log
 MODEL_DIRNAME=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
 MODEL_DIRNAME_BASE=${PROJECT_DIR}/checkpoints/${MODEL_NAME_BASE}/
 
-get_mode()
-{
-  if [[ ${USE_GT_BOX} == "True" ]] && [[ ${USE_GT_OBJECT_LABEL} == "True" ]]; then
-    echo "predcls"
-  elif [[ ${USE_GT_BOX} == "True" ]] && [[ ${USE_GT_OBJECT_LABEL} == "False" ]]; then
-    echo "sgcls"
-  elif [[ ${USE_GT_BOX} == "False" ]] && [[ ${USE_GT_OBJECT_LABEL} == "False" ]]; then
-    echo "sgdet"
-  else
-    error_exit "Illegal USE_GT_BOX=${USE_GT_BOX} and USE_GT_OBJECT_LABEL=${USE_GT_OBJECT_LABEL} provided."
-  fi
-}
-
 if [ -d "${MODEL_DIRNAME_BASE}" ]; then
   if [ -d "${MODEL_DIRNAME}" ]; then
     error_exit "Aborted: ${MODEL_DIRNAME} exists." 2>&1 | tee -a ${LOGDIR}/${SLURM_JOB_NAME}_${SLURM_JOB_ID}.log
@@ -38,7 +25,6 @@ if [ -d "${MODEL_DIRNAME_BASE}" ]; then
     export PORT=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
     export TORCH_DISTRIBUTED_DEBUG=INFO
     export TORCHELASTIC_MAX_RESTARTS=0
-    export MODE=$(get_mode)
     cd ${PROJECT_DIR}
     mkdir ${MODEL_DIRNAME} &&
     cp -r ${PROJECT_DIR}/.git/ ${MODEL_DIRNAME} &&
@@ -47,7 +33,7 @@ if [ -d "${MODEL_DIRNAME_BASE}" ]; then
     cp -r ${PROJECT_DIR}/maskrcnn_benchmark/ ${MODEL_DIRNAME} ||
     echo "Failed to train BPL+SA model ${MODEL_NAME} at copying folders."
 
-    echo "TRAINING ${MODE} BPL+SA model ${MODEL_NAME}"
+    echo "TRAINING BPL+SA model ${MODEL_NAME}"
     if [ "${USE_CONFIG_AUGS}" = True ]; then
       torchrun --master_port ${PORT} --nproc_per_node=${NUM_GPUS} \
               ${PROJECT_DIR}/tools/relation_train_net.py \
