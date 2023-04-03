@@ -29,8 +29,6 @@ class TransformerPredictor(nn.Module):
         self.num_att_cls = config.MODEL.ROI_ATTRIBUTE_HEAD.NUM_ATTRIBUTES
         self.num_rel_cls = config.MODEL.ROI_RELATION_HEAD.NUM_CLASSES
 
-        devices = config.MODEL.DEVICE
-
         assert in_channels is not None
         self.use_vision = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_VISION
         self.use_bias = use_bias = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_BIAS
@@ -82,6 +80,7 @@ class TransformerPredictor(nn.Module):
             self.ctx_compress = ctx_compress
 
         if with_transfer:
+            devices = config.MODEL.DEVICE
             print("Using Confusion Matrix Transfer!")
             pred_adj_np = np.load('./misc/conf_mat_freq_train.npy')
             pred_adj_np[0, :] = 0.0
@@ -249,11 +248,9 @@ class MotifPredictor(nn.Module):
         self.num_obj_cls = config.MODEL.ROI_BOX_HEAD.NUM_CLASSES
         self.num_att_cls = config.MODEL.ROI_ATTRIBUTE_HEAD.NUM_ATTRIBUTES
         self.num_rel_cls = config.MODEL.ROI_RELATION_HEAD.NUM_CLASSES
-        
         assert in_channels is not None
-        num_inputs = in_channels
         self.use_vision = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_VISION
-        self.use_bias = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_BIAS
+        self.use_bias = use_bias = config.MODEL.ROI_RELATION_HEAD.PREDICT_USE_BIAS
 
         # load class dict
         vg_stats = VGStats()
@@ -271,12 +268,10 @@ class MotifPredictor(nn.Module):
         self.hidden_dim = config.MODEL.ROI_RELATION_HEAD.CONTEXT_HIDDEN_DIM
         self.pooling_dim = config.MODEL.ROI_RELATION_HEAD.CONTEXT_POOLING_DIM
         self.post_emb = nn.Linear(self.hidden_dim, self.hidden_dim * 2)
-        self.post_cat = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
-        self.rel_compress = nn.Linear(self.pooling_dim, self.num_rel_cls, bias=True)
-
-        # initialize layer parameters 
         layer_init(self.post_emb, 10.0 * (1.0 / self.hidden_dim) ** 0.5, normal=True)
+        self.post_cat = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
         layer_init(self.post_cat, xavier=True)
+        self.rel_compress = nn.Linear(self.pooling_dim, self.num_rel_cls, bias=True)
         layer_init(self.rel_compress, xavier=True)
         
         if self.pooling_dim != config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM:
@@ -286,9 +281,40 @@ class MotifPredictor(nn.Module):
         else:
             self.union_single_not_match = False
 
-        if self.use_bias:
+        self.with_clean_classifier = with_clean_classifier = config.MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER
+        self.with_transfer = with_transfer = config.MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER
+
+        if use_bias:
             # convey statistics into FrequencyBias to avoid loading again
-            self.freq_bias = FrequencyBias(config, vg_stats.pred_dist)
+            freq_bias = FrequencyBias(config, vg_stats.pred_dist)
+            if with_clean_classifier:
+                self.freq_bias_clean = freq_bias
+            else:
+                self.freq_bias = freq_bias
+
+        if with_clean_classifier:
+            if self.pooling_dim != config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM:
+                self.union_single_not_match = True
+                self.up_dim_clean = nn.Linear(config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM, self.pooling_dim)
+                layer_init(self.up_dim_clean, xavier=True)
+            else:
+                self.union_single_not_match = False
+            self.post_cat_clean = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
+            layer_init(self.post_cat_clean, xavier=True)
+            self.rel_compress_clean = nn.Linear(self.pooling_dim, self.num_rel_cls, bias=True)
+            layer_init(self.rel_compress_clean, xavier=True)
+
+        if with_transfer:
+            devices = config.MODEL.DEVICE
+            print("Using Confusion Matrix Transfer!")
+            pred_adj_np = np.load('./misc/conf_mat_freq_train.npy')
+            pred_adj_np[0, :] = 0.0
+            pred_adj_np[:, 0] = 0.0
+            pred_adj_np[0, 0] = 1.0
+            # adj_i_j means the baseline outputs category j, but the ground truth is i.
+            pred_adj_np /= (pred_adj_np.sum(-1)[:, None] + 1e-8)
+            pred_adj_np = adj_normalize(pred_adj_np)
+            self.pred_adj_nor = torch.as_tensor(pred_adj_np, dtype=torch.float32, device=devices)
 
     def forward(self, proposals, rel_pair_idxs, rel_labels, rel_binarys, roi_features, union_features, logger=None):
         """
