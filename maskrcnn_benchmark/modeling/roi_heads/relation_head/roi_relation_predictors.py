@@ -402,79 +402,66 @@ class VCTreePredictor(nn.Module):
         self.num_obj_cls = config.MODEL.ROI_BOX_HEAD.NUM_CLASSES
         self.num_att_cls = config.MODEL.ROI_ATTRIBUTE_HEAD.NUM_ATTRIBUTES
         self.num_rel_cls = config.MODEL.ROI_RELATION_HEAD.NUM_CLASSES
-
+        
         assert in_channels is not None
-        num_inputs = in_channels
 
         # load class dict
-        statistics = get_dataset_statistics(config)
-        obj_classes, rel_classes, att_classes = statistics['obj_classes'], statistics['rel_classes'], statistics[
-            'att_classes']
-        assert self.num_obj_cls == len(obj_classes)
-        assert self.num_att_cls == len(att_classes)
-        assert self.num_rel_cls == len(rel_classes)
+        vg_stats = VGStats()
+        obj_classes, rel_classes, att_classes = vg_stats.obj_classes, vg_stats.rel_classes, vg_stats.att_classes
+        pred_dist = vg_stats.pred_dist
+        assert self.num_obj_cls==len(obj_classes)
+        assert self.num_att_cls==len(att_classes)
+        assert self.num_rel_cls==len(rel_classes)
         # init contextual lstm encoding
-        self.context_layer = VCTreeLSTMContext(config, obj_classes, rel_classes, statistics, in_channels)
+        self.context_layer = VCTreeLSTMContext(config, obj_classes, rel_classes, pred_dist, in_channels)
 
         # post decoding
         self.hidden_dim = config.MODEL.ROI_RELATION_HEAD.CONTEXT_HIDDEN_DIM
         self.pooling_dim = config.MODEL.ROI_RELATION_HEAD.CONTEXT_POOLING_DIM
         self.post_emb = nn.Linear(self.hidden_dim, self.hidden_dim * 2)
-        self.post_cat = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
-
-        # learned-mixin
-        # self.uni_gate = nn.Linear(self.pooling_dim, self.num_rel_cls)
-        # self.frq_gate = nn.Linear(self.pooling_dim, self.num_rel_cls)
-        self.ctx_compress = nn.Linear(self.pooling_dim, self.num_rel_cls)
-        # self.uni_compress = nn.Linear(self.pooling_dim, self.num_rel_cls)
-        # layer_init(self.uni_gate, xavier=True)
-        # layer_init(self.frq_gate, xavier=True)
-        layer_init(self.ctx_compress, xavier=True)
-        # layer_init(self.uni_compress, xavier=True)
-
-        # initialize layer parameters
         layer_init(self.post_emb, 10.0 * (1.0 / self.hidden_dim) ** 0.5, normal=True)
-        layer_init(self.post_cat, xavier=True)
+        ctx_compress = nn.Linear(self.pooling_dim, self.num_rel_cls)
+        layer_init(ctx_compress, xavier=True)
+        post_cat = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
+        layer_init(post_cat, xavier=True)
 
         if self.pooling_dim != config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM:
             self.union_single_not_match = True
-            self.up_dim = nn.Linear(config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM, self.pooling_dim)
-            layer_init(self.up_dim, xavier=True)
+            up_dim = nn.Linear(config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM, self.pooling_dim)
+            layer_init(up_dim, xavier=True)
         else:
             self.union_single_not_match = False
 
-        self.freq_bias = FrequencyBias(config, statistics)
+        freq_bias = FrequencyBias(config, pred_dist)
 
-        self.with_clean_classifier = config.MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER
+        self.with_clean_classifier = with_clean_classifier = config.MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER
+        self.with_transfer = with_transfer= config.MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER
+        post_cat = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
+        layer_init(post_cat, xavier=True)
+        ctx_compress = nn.Linear(self.pooling_dim, self.num_rel_cls, bias=True)
+        layer_init(ctx_compress, xavier=True)
 
-        if self.with_clean_classifier:
-            if self.pooling_dim != config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM:
-                self.union_single_not_match = True
-                self.up_dim_clean = nn.Linear(config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM, self.pooling_dim)
-                layer_init(self.up_dim_clean, xavier=True)
-            else:
-                self.union_single_not_match = False
-            self.post_cat_clean = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
-            self.ctx_compress_clean = nn.Linear(self.pooling_dim, self.num_rel_cls, bias=True)
-            layer_init(self.post_cat_clean, xavier=True)
-            layer_init(self.ctx_compress_clean, xavier=True)
-            # convey statistics into FrequencyBias to avoid loading again
-            self.freq_bias_clean = FrequencyBias(config, statistics)
+        if with_clean_classifier:
+            self.up_dim_clean = up_dim
+            self.post_cat_clean = post_cat
+            self.ctx_compress_clean = ctx_compress
+        else:
+            self.post_cat = post_cat
+            self.ctx_compress = ctx_compress
+            self.freq_bias = freq_bias
 
-            self.with_transfer = config.MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER
-            if self.with_transfer:
-                devices = config.MODEL.DEVICE
-                print("!!!!!!!!!With Confusion Matrix Channel!!!!!")
-                pred_adj_np = np.load('./misc/conf_mat_freq_train.npy')
-                # pred_adj_np = 1.0 - pred_adj_np
-                pred_adj_np[0, :] = 0.0
-                pred_adj_np[:, 0] = 0.0
-                pred_adj_np[0, 0] = 1.0
-                # adj_i_j means the baseline outputs category j, but the ground truth is i.
-                pred_adj_np = pred_adj_np / (pred_adj_np.sum(-1)[:, None] + 1e-8)
-                pred_adj_np = adj_normalize(pred_adj_np)
-                self.pred_adj_nor = torch.from_numpy(pred_adj_np).float().to(devices)
-
+        if with_transfer:
+            devices = config.MODEL.DEVICE
+            print("Using Confusion Matrix Transfer!")
+            pred_adj_np = np.load('./misc/conf_mat_freq_train.npy')
+            pred_adj_np[0, :] = 0.0
+            pred_adj_np[:, 0] = 0.0
+            pred_adj_np[0, 0] = 1.0
+            # adj_i_j means the baseline outputs category j, but the ground truth is i.
+            pred_adj_np /= (pred_adj_np.sum(-1)[:, None] + 1e-8)
+            pred_adj_np = adj_normalize(pred_adj_np)
+            self.pred_adj_nor = torch.as_tensor(pred_adj_np, dtype=torch.float32, device=devices)
+        
     def forward(self, proposals, rel_pair_idxs, rel_labels, rel_binarys, roi_features, union_features, logger=None):
         """
         Returns:
@@ -485,8 +472,7 @@ class VCTreePredictor(nn.Module):
         """
 
         # encode context infomation
-        obj_dists, obj_preds, edge_ctx, binary_preds = self.context_layer(roi_features, proposals, rel_pair_idxs,
-                                                                          logger)
+        obj_dists, obj_preds, edge_ctx, binary_preds = self.context_layer(roi_features, proposals, rel_pair_idxs, logger)
 
         # post decode
         edge_rep = F.relu(self.post_emb(edge_ctx))
@@ -510,35 +496,30 @@ class VCTreePredictor(nn.Module):
         prod_rep = cat(prod_reps, dim=0)
         pair_pred = cat(pair_preds, dim=0)
 
-        prod_rep = self.post_cat(prod_rep)
+        if self.with_clean_classifier:
+            post_cat = self.post_cat_clean
+            up_dim = self.up_dim_clean
+            freq_bias = self.freq_bias_clean
+            ctx_compress = self.ctx_compress_clean
+        else:
+            post_cat = self.post_cat
+            up_dim = self.up_dim
+            freq_bias = self.freq_bias
+            ctx_compress = self.ctx_compress
 
-        # learned-mixin Gate
-        # uni_gate = torch.tanh(self.uni_gate(self.drop(prod_rep)))
-        # frq_gate = torch.tanh(self.frq_gate(self.drop(prod_rep)))
+        prod_rep = post_cat(prod_rep)
 
         if self.union_single_not_match:
-            union_features = self.up_dim(union_features)
+            union_features = up_dim(union_features)
 
-        ctx_dists = self.ctx_compress(prod_rep * union_features)
-        # uni_dists = self.uni_compress(self.drop(union_features))
-        frq_dists = self.freq_bias.index_with_labels(pair_pred.long())
+        rel_dists = ctx_compress(prod_rep * union_features)
+        frq_dists = freq_bias.index_with_labels(pair_pred.long())
         frq_dists = F.dropout(frq_dists, 0.3, training=self.training)
-        rel_dists = ctx_dists + frq_dists
-        # rel_dists = ctx_dists + uni_gate * uni_dists + frq_gate * frq_dists
-        if self.with_clean_classifier:
-            prod_rep_clean = cat(prod_reps, dim=0)
-            prod_rep_clean = self.post_cat_clean(prod_rep_clean)
-            if self.union_single_not_match:
-                union_features = self.up_dim_clean(union_features)
+        rel_dists += frq_dists
 
-            ctx_dists_clean = self.ctx_compress_clean(prod_rep_clean * union_features)
-            # uni_dists = self.uni_compress(self.drop(union_features))
-            frq_dists_clean = self.freq_bias_clean.index_with_labels(pair_pred.long())
-            frq_dists_clean = F.dropout(frq_dists_clean, 0.3, training=self.training)
-            rel_dists_clean = ctx_dists_clean + frq_dists_clean
-            if self.with_transfer:
-                rel_dists_clean = (self.pred_adj_nor @ rel_dists_clean.T).T
-            rel_dists = rel_dists_clean
+        if self.with_transfer:
+            rel_dists = (self.pred_adj_nor @ rel_dists.T).T
+
         obj_dists = obj_dists.split(num_objs, dim=0)
         rel_dists = rel_dists.split(num_rels, dim=0)
 
