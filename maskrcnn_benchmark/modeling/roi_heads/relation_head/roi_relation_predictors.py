@@ -294,11 +294,13 @@ class MotifPredictor(nn.Module):
         layer_init(rel_compress, xavier=True)
         
         if with_clean_classifier:
-            self.up_dim_clean = up_dim
+            if self.union_single_not_match:
+                self.up_dim_clean = up_dim
             self.post_cat_clean = post_cat
             self.rel_compress_clean = rel_compress
         else:
-            self.up_dim = up_dim
+            if self.union_single_not_match:
+                self.up_dim = up_dim
             self.post_cat = post_cat
             self.rel_compress = rel_compress
 
@@ -353,12 +355,14 @@ class MotifPredictor(nn.Module):
 
         if self.with_clean_classifier:
             post_cat = self.post_cat_clean
-            up_dim = self.up_dim_clean
+            if self.union_single_not_match:
+                up_dim = self.up_dim_clean
             freq_bias = self.freq_bias_clean
             rel_compress = self.rel_compress_clean
         else:
             post_cat = self.post_cat
-            up_dim = self.up_dim
+            if self.union_single_not_match:
+                up_dim = self.up_dim
             freq_bias = self.freq_bias
             rel_compress = self.rel_compress
 
@@ -442,10 +446,14 @@ class VCTreePredictor(nn.Module):
         layer_init(ctx_compress, xavier=True)
 
         if with_clean_classifier:
-            self.up_dim_clean = up_dim
+            if self.union_single_not_match:
+                self.up_dim_clean = up_dim
             self.post_cat_clean = post_cat
             self.ctx_compress_clean = ctx_compress
+            self.freq_bias_clean = freq_bias
         else:
+            if self.union_single_not_match:
+                self.up_dim = up_dim
             self.post_cat = post_cat
             self.ctx_compress = ctx_compress
             self.freq_bias = freq_bias
@@ -498,12 +506,14 @@ class VCTreePredictor(nn.Module):
 
         if self.with_clean_classifier:
             post_cat = self.post_cat_clean
-            up_dim = self.up_dim_clean
+            if self.union_single_not_match:
+                up_dim = self.up_dim_clean
             freq_bias = self.freq_bias_clean
             ctx_compress = self.ctx_compress_clean
         else:
             post_cat = self.post_cat
-            up_dim = self.up_dim
+            if self.union_single_not_match:
+                up_dim = self.up_dim
             freq_bias = self.freq_bias
             ctx_compress = self.ctx_compress
 
