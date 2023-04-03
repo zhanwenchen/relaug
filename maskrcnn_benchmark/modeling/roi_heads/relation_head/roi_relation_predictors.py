@@ -269,10 +269,6 @@ class MotifPredictor(nn.Module):
         self.pooling_dim = config.MODEL.ROI_RELATION_HEAD.CONTEXT_POOLING_DIM
         self.post_emb = nn.Linear(self.hidden_dim, self.hidden_dim * 2)
         layer_init(self.post_emb, 10.0 * (1.0 / self.hidden_dim) ** 0.5, normal=True)
-        self.post_cat = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
-        layer_init(self.post_cat, xavier=True)
-        self.rel_compress = nn.Linear(self.pooling_dim, self.num_rel_cls, bias=True)
-        layer_init(self.rel_compress, xavier=True)
         
         if self.pooling_dim != config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM:
             self.union_single_not_match = True
@@ -292,20 +288,19 @@ class MotifPredictor(nn.Module):
             else:
                 self.freq_bias = freq_bias
 
+        post_cat = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
+        layer_init(post_cat, xavier=True)
+        rel_compress = nn.Linear(self.pooling_dim, self.num_rel_cls, bias=True)
+        layer_init(rel_compress, xavier=True)
+        
         if with_clean_classifier:
-            if self.pooling_dim != config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM:
-                self.union_single_not_match = True
-                self.up_dim_clean = nn.Linear(config.MODEL.ROI_BOX_HEAD.MLP_HEAD_DIM, self.pooling_dim)
-                layer_init(self.up_dim_clean, xavier=True)
-            else:
-                self.union_single_not_match = False
-            self.post_cat_clean = nn.Linear(self.hidden_dim * 2, self.pooling_dim)
-            layer_init(self.post_cat_clean, xavier=True)
-            self.rel_compress_clean = nn.Linear(self.pooling_dim, self.num_rel_cls, bias=True)
-            layer_init(self.rel_compress_clean, xavier=True)
             self.up_dim_clean = up_dim
+            self.post_cat_clean = post_cat
+            self.rel_compress_clean = rel_compress
         else:
             self.up_dim = up_dim
+            self.post_cat = post_cat
+            self.rel_compress = rel_compress
 
         if with_transfer:
             devices = config.MODEL.DEVICE
