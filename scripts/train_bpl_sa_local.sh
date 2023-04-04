@@ -6,8 +6,8 @@ USE_CONFIG_AUGS=False # TODO: change this.
 export CUDA_VISIBLE_DEVICES=1,2,3,4 # TODO: change this.
 
 export MODEL_NAME="${MODEL_NAME_BASE}_${ITERATION}_bpl_sa"
-export PRETRAINED_MODEL_CKPT=${PROJECT_DIR}/checkpoints/${MODEL_NAME_BASE}/model_${ITERATION}.pth
 export PROJECT_DIR=/localtmp/pct4et/relaug
+export PRETRAINED_MODEL_CKPT=${PROJECT_DIR}/checkpoints/${MODEL_NAME_BASE}/model_${ITERATION}.pth
 source ${PROJECT_DIR}/scripts/shared_functions/utils.sh
 export LOGDIR=${PROJECT_DIR}/log
 MODEL_DIRNAME=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
