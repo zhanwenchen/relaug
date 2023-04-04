@@ -200,7 +200,7 @@ def train(cfg, local_rank, distributed, logger):
     output_folders_test = [None] * len(dataset_names_test)
     if cfg.SOLVER.PRE_VAL:
         logger.info("Validate before training")
-        run_val(cfg, model, val_data_loaders, distributed, logger)
+        run_val(cfg, model, val_data_loaders, distributed, logger, dataset_names_val, output_folders_val)
 
     logger.info("Start training")
     meters = MetricLogger(delimiter="  ")
