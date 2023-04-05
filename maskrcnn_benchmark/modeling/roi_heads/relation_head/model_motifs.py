@@ -2,6 +2,7 @@
 from maskrcnn_benchmark.modeling import registry
 import numpy as np
 import torch
+from torch import int64 as torch_int64
 from torch import nn
 from torch.nn.utils.rnn import PackedSequence
 from torch.nn import functional as F
@@ -166,12 +167,13 @@ class DecoderRNN(nn.Module):
             out_dists.append(pred_dist)
 
             if self.training:
-                labels_to_embed = labels[start_ind:end_ind].clone()
+                labels_to_embed = labels[start_ind:end_ind].to(torch_int64, non_blocking=True)
                 # Whenever labels are 0 set input to be our max prediction
                 nonzero_pred = pred_dist[:, 1:].max(1)[1] + 1
                 is_bg = (labels_to_embed == 0).nonzero()
                 if is_bg.dim() > 0:
-                    labels_to_embed[is_bg.squeeze(1)] = nonzero_pred[is_bg.squeeze(1)]
+                    is_bg.squeeze_(1)
+                    labels_to_embed[is_bg] = nonzero_pred[is_bg]
                 out_commitments.append(labels_to_embed)
                 previous_obj_embed = self.obj_embed(labels_to_embed+1)
             else:
