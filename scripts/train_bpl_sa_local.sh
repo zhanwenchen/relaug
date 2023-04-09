@@ -1,8 +1,9 @@
 #!/bin/bash
 
+# TODO: change this block. ITERATION needs 7 digits
 MODEL_NAME_BASE=2023-03-21054656_motif_none_semantic_visual_predcls_4GPU_labx_1e3
-ITERATION=0012000 # 0014000 # TODO: change this. 7 digits
-USE_CONFIG_AUGS=True # TODO: change this.
+ITERATION=0012000
+USE_CONFIG_AUGS=True
 export CUDA_VISIBLE_DEVICES=1,2,3,4
 
 export MODEL_NAME="${MODEL_NAME_BASE}_${ITERATION}_bpl_sa"
