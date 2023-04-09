@@ -47,6 +47,7 @@ cp -r ${PROJECT_DIR}/maskrcnn_benchmark/ ${MODEL_DIRNAME} &&
 torchrun --master_port ${PORT} --nproc_per_node=$NUM_GPUS \
   ${PROJECT_DIR}/tools/relation_train_net.py \
   --config-file ${CONFIG_FILE} \
+  SOLVER.BASE_LR ${LR} \
   SOLVER.IMS_PER_BATCH ${BATCH_SIZE} \
   SOLVER.MAX_ITER ${MAX_ITER} \
   MODEL.ROI_RELATION_HEAD.PREDICTOR ${PREDICTOR} \
