@@ -39,6 +39,7 @@ _C.MODEL.WEIGHT = ""
 
 # checkpoint of detector, for relation prediction
 _C.MODEL.PRETRAINED_DETECTOR_CKPT = ""
+_C.MODEL.PRETRAINED_MODEL_CKPT = ""
 
 # -----------------------------------------------------------------------------
 # INPUT
@@ -320,6 +321,8 @@ _C.MODEL.ROI_RELATION_HEAD.NUM_SAMPLE_PER_GT_REL = 4  # when sample fg relations
 # we add grount truth box to the output of RPN proposals during Training
 _C.MODEL.ROI_RELATION_HEAD.ADD_GTBOX_TO_PROPOSAL_IN_TRAIN = False
 
+_C.MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER = False
+_C.MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER = False
 
 _C.MODEL.ROI_RELATION_HEAD.CAUSAL = CN()
 # direct and indirect effect analysis

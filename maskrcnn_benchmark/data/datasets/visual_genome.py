@@ -1,4 +1,6 @@
 import os
+from os import environ as os_environ
+from os.path import join as os_path_join
 import sys
 import torch
 from torch import (
@@ -7,8 +9,10 @@ from torch import (
 )
 import h5py
 import json
+from json import load as json_load
 from PIL import Image
 import numpy as np
+from numpy import array as np_array, int32 as np_int32
 from collections import defaultdict
 from tqdm import tqdm
 import random
@@ -17,12 +21,15 @@ from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 
 BOX_SCALE = 1024  # Scale at which we have the boxes
+VG_DIRPATH = os_path_join(os_environ['DATASETS_DIR'], 'visual_genome')
+DICT_FILE_FPATH = os_path_join(VG_DIRPATH, 'VG-SGG-dicts-with-attri-info.json')
+
 
 class VGDataset(torch.utils.data.Dataset):
 
     def __init__(self, split, img_dir, roidb_file, dict_file, image_file, use_graft, transforms=None,
                 filter_empty_rels=True, num_im=-1, num_val_im=5000,
-                filter_duplicate_rels=True, filter_non_overlap=True, flip_aug=False, custom_eval=False, custom_path=''):
+                filter_duplicate_rels=True, filter_non_overlap=True, flip_aug=False, custom_eval=False, custom_path='', with_clean_classifier=False, get_state=False):
         """
         Torch dataset for VisualGenome
         Parameters:
@@ -60,13 +67,17 @@ class VGDataset(torch.utils.data.Dataset):
         if self.custom_eval:
             self.get_custom_imgs(custom_path)
         else:
+            self.filenames, self.img_info = load_image_filenames(img_dir, image_file) # length equals to split_mask
             self.split_mask, self.gt_boxes, self.gt_classes, self.gt_attributes, self.relationships = load_graphs(
                 self.roidb_file, self.split, num_im, num_val_im=num_val_im,
                 filter_empty_rels=filter_empty_rels,
                 filter_non_overlap=self.filter_non_overlap,
+                ind_to_predicates=self.ind_to_predicates,
+                img_info=self.img_info,
+                with_clean_classifier=with_clean_classifier,
+                get_state =get_state,
             )
 
-            self.filenames, self.img_info = load_image_filenames(img_dir, image_file) # length equals to split_mask
             self.filenames = [self.filenames[i] for i in np.where(self.split_mask)[0]]
             self.img_info = [self.img_info[i] for i in np.where(self.split_mask)[0]]
 
@@ -351,7 +362,9 @@ def load_image_filenames(img_dir, image_file):
     return fns, img_info
 
 
-def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter_non_overlap):
+
+def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter_non_overlap,
+                ind_to_predicates=None, img_info=None, with_clean_classifier=False, get_state=False):
     """
     Load the file containing the GT boxes and relations, as well as the dataset split
     Parameters:
@@ -419,7 +432,30 @@ def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter
     gt_classes = []
     gt_attributes = []
     relationships = []
-    for i in range(len(image_index)):
+    pred_topk = []
+    pred_num = 15
+    pred_count=0
+    with open(DICT_FILE_FPATH,'rb') as f:
+        vg_dict_info = json_load(f)
+    predicates_tree = vg_dict_info['predicate_count']
+    del vg_dict_info
+    predicates_sort = sorted(predicates_tree.items(), key=lambda x:x[1], reverse=True)
+    for pred_i in predicates_sort:
+        if pred_count >= pred_num:
+            break
+        pred_topk.append(str(pred_i[0]))
+        pred_count += 1
+
+    if with_clean_classifier:
+        root_classes = pred_topk
+    else:
+        root_classes = None
+    if get_state:
+        root_classes = None
+    root_classes_count = {}
+    leaf_classes_count = {}
+    all_classes_count = {}
+    for i, image_idx in enumerate(image_index):
         i_obj_start = im_to_first_box[i]
         i_obj_end = im_to_last_box[i]
         i_rel_start = im_to_first_rel[i]
@@ -451,12 +487,57 @@ def load_graphs(roidb_file, split, num_im, num_val_im, filter_empty_rels, filter
             if inc.size > 0:
                 rels = rels[inc]
             else:
-                split_mask[image_index[i]] = 0
+                split_mask[image_idx] = 0
                 continue
+        if root_classes is not None and split == 'train':
+            # print('old boxes: ', boxes_i)
+            # print('old gt_classes_i: ', gt_classes_i)
+            # print('old rels: ', rels)
+            rel_temp = []
+            # print('rels: ',rels)
+            for rel_i in rels:
+                rel_i_pred = ind_to_predicates[rel_i[2]]
+                if rel_i_pred not in all_classes_count:
+                    all_classes_count[rel_i_pred] = 0
+                all_classes_count[rel_i_pred] = all_classes_count[rel_i_pred] + 1
+                if rel_i_pred not in root_classes or rel_i[2] == 0:
+                    rel_i_leaf = rel_i
 
+                    if rel_i_pred not in leaf_classes_count:
+                        leaf_classes_count[rel_i_pred] = 0
+                    leaf_classes_count[rel_i_pred] = leaf_classes_count[rel_i_pred] + 1
+                    rel_temp.append(rel_i_leaf)
+                if rel_i_pred in root_classes:
+                    rel_i_root = rel_i
+                    if rel_i_pred not in root_classes_count:
+                        root_classes_count[rel_i_pred] = 0
+                    if root_classes_count[rel_i_pred] < 2000: #1000: #2000:
+                        rel_temp.append(rel_i_root)
+                        root_classes_count[rel_i_pred] = root_classes_count[rel_i_pred] + 1
+            if len(rel_temp) == 0:
+                split_mask[image_idx] = 0
+                continue
+            rels = np_array(rel_temp, dtype=np_int32)
         boxes.append(boxes_i)
         gt_classes.append(gt_classes_i)
         gt_attributes.append(gt_attributes_i)
         relationships.append(rels)
+    print('split: ',split)
+    print('root_classes_count: ', root_classes_count)
+    count_list = [0,] + list(root_classes_count.values())
+    count_list_np = np_array(count_list)
+    print('mean root class number: ', count_list_np.mean())
+    print('sum root class number: ', count_list_np.sum())
 
+    print('leaf_classes_count: ', leaf_classes_count)
+    count_list = [0,] + list(leaf_classes_count.values())
+    count_list_np = np_array(count_list)
+    print('mean leaf class number: ', count_list_np.mean())
+    print('sum leaf class number: ', count_list_np.sum())
+    print('all_classes_count: ', all_classes_count)
+    count_list = [0,] + list(all_classes_count.values())
+    count_list_np = np_array(count_list)
+    print('mean all class number: ', count_list_np.mean())
+    print('sum all class number: ', count_list_np.sum())
+    print('number images: ', split_mask.sum())
     return split_mask, boxes, gt_classes, gt_attributes, relationships

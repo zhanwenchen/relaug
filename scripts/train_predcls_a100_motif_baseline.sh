@@ -42,6 +42,8 @@ else
   fi
 
   # Experiment class variables
+  export WITH_CLEAN_CLASSIFIER=False
+  export WITH_TRANSFER_CLASSIFIER=False
   export USE_GT_BOX=True
   export USE_GT_OBJECT_LABEL=True
   export PRE_VAL=False

@@ -162,6 +162,7 @@ class DatasetCatalog(object):
             args['flip_aug'] = cfg.MODEL.FLIP_AUG
             args['custom_eval'] = cfg.TEST.CUSTUM_EVAL
             args['custom_path'] = cfg.TEST.CUSTUM_PATH
+            args['with_clean_classifier'] = cfg.MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER
             return dict(
                 factory="VGDataset",
                 args=args,

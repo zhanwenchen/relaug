@@ -20,7 +20,7 @@ else
   export STRATEGY='cooccurrence-pred_cov'
   export BOTTOM_K=30
   export NUM2AUG=4
-  export MAX_BATCHSIZE_AUG=24
+  export MAX_BATCHSIZE_AUG=16
   if [ "${USE_SEMANTIC}" = True ]; then
       export BATCH_SIZE_PER_GPU=$((${MAX_BATCHSIZE_AUG} / 2))
   else
@@ -28,6 +28,8 @@ else
   fi
 
   # Experiment class variables
+  export WITH_CLEAN_CLASSIFIER=False
+  export WITH_TRANSFER_CLASSIFIER=False
   export USE_GT_BOX=True
   export USE_GT_OBJECT_LABEL=True
   export PRE_VAL=False
