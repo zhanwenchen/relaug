@@ -1,9 +1,9 @@
 #!/bin/bash
 
-MODEL_NAME_BASE=2023-03-21054656_motif_none_semantic_visual_predcls_4GPU_labx_1e3 # 44709300_motif_pairwise_predcls_4GPU_riv_1 # TODO: change this.
+MODEL_NAME_BASE=2023-03-21054656_motif_none_semantic_visual_predcls_4GPU_labx_1e3
 ITERATION=0012000 # 0014000 # TODO: change this. 7 digits
-USE_CONFIG_AUGS=False # TODO: change this.
-export CUDA_VISIBLE_DEVICES=1,2,3,4 # TODO: change this.
+USE_CONFIG_AUGS=True # TODO: change this.
+export CUDA_VISIBLE_DEVICES=1,2,3,4
 
 export MODEL_NAME="${MODEL_NAME_BASE}_${ITERATION}_bpl_sa"
 export PROJECT_DIR=/localtmp/pct4et/relaug
@@ -40,7 +40,6 @@ if [ -d "${MODEL_DIRNAME_BASE}" ]; then
               --config-file "${MODEL_DIRNAME_BASE}/config.yml" \
               MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER True \
               MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER True  \
-              DTYPE "float32" \
               SOLVER.PRE_VAL True \
               TEST.IMS_PER_BATCH ${NUM_GPUS} \
               MODEL.PRETRAINED_MODEL_CKPT ${PRETRAINED_MODEL_CKPT} \
@@ -56,7 +55,6 @@ if [ -d "${MODEL_DIRNAME_BASE}" ]; then
               SOLVER.AUGMENTATION.USE_SEMANTIC False \
               MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER True \
               MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER True  \
-              DTYPE "float32" \
               SOLVER.PRE_VAL True \
               TEST.IMS_PER_BATCH ${NUM_GPUS} \
               MODEL.PRETRAINED_MODEL_CKPT ${PRETRAINED_MODEL_CKPT} \
