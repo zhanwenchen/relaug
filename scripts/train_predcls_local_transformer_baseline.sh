@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SLURM_JOB_NAME=transformer_none_none_predcls_4GPU_labx_1e-4
+SLURM_JOB_NAME=transformer_none_none_predcls_2GPU_lab1_0.16
 
 export PROJECT_DIR=/localtmp/pct4et/relaug
 source ${PROJECT_DIR}/scripts/shared_functions/utils.sh
