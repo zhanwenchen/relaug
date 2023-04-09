@@ -47,8 +47,8 @@ else
   export PRE_VAL=False
 
   # Experiment hyperparams
-  export MAX_ITER=50000
-  export LR=1e-4
+  export MAX_ITER=16000
+  export LR=0.16
   export SEED=1234
 
   # Paths and configss
