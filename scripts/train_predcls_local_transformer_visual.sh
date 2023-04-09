@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SLURM_JOB_NAME=transformer_none_visual_predcls_4GPU_labx_1e-4
+SLURM_JOB_NAME=transformer_none_visual_predcls_2GPU_lab1_0.16
 
 export PROJECT_DIR=/localtmp/pct4et/relaug
 source ${PROJECT_DIR}/scripts/shared_functions/utils.sh
@@ -20,7 +20,7 @@ else
   export STRATEGY='cooccurrence-pred_cov'
   export BOTTOM_K=30
   export NUM2AUG=4
-  export MAX_BATCHSIZE_AUG=20
+  export MAX_BATCHSIZE_AUG=8
   if [ "${USE_SEMANTIC}" = True ]; then
       export BATCH_SIZE_PER_GPU=$((${MAX_BATCHSIZE_AUG} / 2))
   else
@@ -43,7 +43,7 @@ else
   export ALL_EDGES_FPATH=${DATASETS_DIR}/visual_genome/gbnet/all_edges.pkl
 
   # System variables
-  export CUDA_VISIBLE_DEVICES=1,2,3,4
+  export CUDA_VISIBLE_DEVICES=6,7
   export NUM_GPUS=$(echo ${CUDA_VISIBLE_DEVICES} | tr -cd , | wc -c); ((NUM_GPUS++))
   export BATCH_SIZE=$((${NUM_GPUS} * ${BATCH_SIZE_PER_GPU}))
   export PORT=$(comm -23 <(seq 49152 65535 | sort) <(ss -Htan | awk '{print $4}' | cut -d':' -f2 | sort -u) | shuf | head -n 1)
