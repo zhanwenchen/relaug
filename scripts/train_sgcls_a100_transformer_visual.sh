@@ -8,7 +8,7 @@
 #SBATCH -t 48:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=128GB # need to match batch size.
-#SBATCH -J transformer_none_visual_1e-4_riv_sgcls # TODO: CHANGE THIS
+#SBATCH -J transformer_none_visual_0.016_riv_sgcls # TODO: CHANGE THIS
 #SBATCH -o /scratch/pct4et/relaug/log/%x-%A.out
 #SBATCH -e /scratch/pct4et/relaug/log/%x-%A.err
 #SBATCH --mail-type=ALL
@@ -50,7 +50,7 @@ else
 
   # Experiment hyperparams
   export MAX_ITER=16000
-  export LR=0.16
+  export LR=0.016
   export SEED=1234
 
   # Paths and configss
