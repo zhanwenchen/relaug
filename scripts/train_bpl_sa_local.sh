@@ -5,6 +5,7 @@ MODEL_NAME_BASE=2023-03-21054656_motif_none_semantic_visual_predcls_4GPU_labx_1e
 ITERATION=0012000
 USE_CONFIG_AUGS=True
 export CUDA_VISIBLE_DEVICES=1,2,3,4
+BASE_LR=1e-3
 
 export MODEL_NAME="${MODEL_NAME_BASE}_${ITERATION}_bpl_sa"
 export PROJECT_DIR=/localtmp/pct4et/relaug
@@ -42,6 +43,7 @@ if [ -d "${MODEL_DIRNAME_BASE}" ]; then
               MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER True \
               MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER True  \
               SOLVER.PRE_VAL True \
+              SOLVER.BASE_LR ${BASE_LR} \
               TEST.IMS_PER_BATCH ${NUM_GPUS} \
               MODEL.PRETRAINED_MODEL_CKPT ${PRETRAINED_MODEL_CKPT} \
               OUTPUT_DIR ./checkpoints/${MODEL_NAME} \
@@ -57,6 +59,7 @@ if [ -d "${MODEL_DIRNAME_BASE}" ]; then
               MODEL.ROI_RELATION_HEAD.WITH_CLEAN_CLASSIFIER True \
               MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER True  \
               SOLVER.PRE_VAL True \
+              SOLVER.BASE_LR ${BASE_LR} \
               TEST.IMS_PER_BATCH ${NUM_GPUS} \
               MODEL.PRETRAINED_MODEL_CKPT ${PRETRAINED_MODEL_CKPT} \
               OUTPUT_DIR ${MODEL_DIRNAME} \
