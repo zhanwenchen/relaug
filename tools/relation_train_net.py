@@ -221,6 +221,7 @@ def train(cfg, local_rank, distributed, logger):
         data_loaders_test = make_data_loader(cfg, mode='test', is_distributed=distributed)
         logger.info('Finished creating test dataloader')
     print_first_grad = True
+    model_name = os_environ["MODEL_NAME"]
     for iteration, (images, targets, _) in enumerate(train_data_loader, start_iter):
         if any(len(target) < 1 for target in targets):
             logger.error(f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}" )
@@ -303,13 +304,13 @@ def train(cfg, local_rank, distributed, logger):
         result_val = None # used for scheduler updating
         if iteration % val_period == 0:
             if to_val:
-                logger.info(f"iteration={iteration}: Start validating")
+                logger.info(f"iteration={iteration}: Start validating model {model_name}")
                 result_val = run_val(cfg, model, val_data_loaders, distributed, logger, dataset_names_val, output_folders_val)
-                logger.info(f"iteration={iteration}: Validation Result: %.4f" % result_val)
+                logger.info(f"iteration={iteration}: Validation Result: %.4f for model {model_name}" % result_val)
             if to_test:
-                logger.info(f"iteration={iteration}: Start testing")
+                logger.info(f"iteration={iteration}: Start testing model {model_name}")
                 result_test = run_val(cfg, model, data_loaders_test, distributed, logger, dataset_names_test, output_folders_test)
-                logger.info(f"iteration={iteration}: Test Result: %.4f" % result_test)
+                logger.info(f"iteration={iteration}: Test Result: %.4f for model {model_name}" % result_test)
 
         # scheduler should be called after optimizer.step() in pytorch>=1.1.0
         # https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
