@@ -174,7 +174,10 @@ def do_vg_evaluation(
         result_str += eval_ng_zeroshot_recall.generate_print_string(mode)
         result_str += eval_mean_recall.generate_print_string(mode)
         result_str += eval_ng_mean_recall.generate_print_string(mode)
-        
+        mr_avg = get_average_dictionary_value(eval_mean_recall.result_dict[mode + '_mean_recall'])
+        r_avg = get_average_dictionary_value(eval_recall.result_dict[mode + '_recall'])
+        zr_avg = get_average_dictionary_value(eval_zeroshot_recall.result_dict[mode + '_zeroshot_recall'])
+        result_str += f'mr_avg={mr_avg}, r_avg={r_avg}, zr_avg={zr_avg}, avg(mr_avg, r_avg)={(mr_avg+r_avg)/2}, avg(mr_avg, r_avg, zr_avg)={(mr_avg+r_avg+zr_avg)/3}'
         if cfg.MODEL.ROI_RELATION_HEAD.USE_GT_BOX:
             result_str += eval_pair_accuracy.generate_print_string(mode)
         result_str += '=' * 100 + '\n'
@@ -190,6 +193,14 @@ def do_vg_evaluation(
         return float(mAp)
     else:
         return -1
+
+
+def get_average_dictionary_value(dicty):
+    summy = 0
+    # for k, v in self.result_dict[mode + '_mean_recall'].items():
+    for k, v in dicty.items():
+        summy += float(v)
+    return summy/len(dicty)
 
 
 def save_output(output_folder, groundtruths, predictions, dataset):
