@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SLURM_JOB_NAME=transformer_none_none_predcls_2GPU_lab1_0.016
+SLURM_JOB_NAME=transformer_none_none_predcls_2GPU_lab1_0.01
 
 export PROJECT_DIR=/localtmp/pct4et/relaug
 source ${PROJECT_DIR}/scripts/shared_functions/utils.sh
@@ -35,8 +35,8 @@ else
   export PRE_VAL=False
 
   # Experiment hyperparams
-  export MAX_ITER=16000
-  export LR=0.016
+  export MAX_ITER=32000
+  export LR=0.01
   export SEED=1234
 
   # Paths and configss
