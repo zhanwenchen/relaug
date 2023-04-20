@@ -22,7 +22,7 @@ export MAX_ITER=32000
 export NUM_GPUS=$(echo ${CUDA_VISIBLE_DEVICES} | tr -cd , | wc -c); ((NUM_GPUS++))
 export BATCH_SIZE=$((${NUM_GPUS} * ${BATCH_SIZE_PER_GPU}))
 
-export MODEL_NAME="${MODEL_NAME_BASE}_${ITERATION}_bpl_sa_semantic"
+export MODEL_NAME="${MODEL_NAME_BASE}_${ITERATION}_bpl_sa_visual"
 export PROJECT_DIR=/localtmp/pct4et/relaug
 export PRETRAINED_MODEL_CKPT=${PROJECT_DIR}/checkpoints/${MODEL_NAME_BASE}/model_${ITERATION}.pth
 source ${PROJECT_DIR}/scripts/shared_functions/utils.sh
