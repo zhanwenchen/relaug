@@ -35,7 +35,7 @@ else
   export PRE_VAL=False
 
   # Experiment hyperparams
-  export MAX_ITER=16000
+  export MAX_ITER=50000
   export LR=0.016
   export SEED=1234
 

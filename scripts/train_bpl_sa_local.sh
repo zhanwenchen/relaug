@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # TODO: change this block. ITERATION needs 7 digits
-MODEL_NAME_BASE=2023-03-21054656_motif_none_semantic_visual_predcls_4GPU_labx_1e3
-ITERATION=0012000
+MODEL_NAME_BASE=2023-03-26182152_transformer_none_semantic_visual_predcls_4GPU_labx_1e-4
+ITERATION=0010000
 USE_CONFIG_AUGS=True
-export CUDA_VISIBLE_DEVICES=1,2,3,4
 BASE_LR=1e-3
+export CUDA_VISIBLE_DEVICES=8,9
 
 export MODEL_NAME="${MODEL_NAME_BASE}_${ITERATION}_bpl_sa"
 export PROJECT_DIR=/localtmp/pct4et/relaug
