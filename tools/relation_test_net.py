@@ -8,7 +8,7 @@ import os
 
 import torch
 from maskrcnn_benchmark.config import cfg
-from maskrcnn_benchmark.data import make_data_loader
+from maskrcnn_benchmark.data import make_data_loader, VGStats
 from maskrcnn_benchmark.engine.inference import inference
 from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
@@ -95,7 +95,7 @@ def main():
             dataset_names = cfg.DATASETS.TRAIN
         elif cfg.DATASETS.TO_TEST == 'val':
             dataset_names = cfg.DATASETS.VAL
-
+    vg_stats = VGStats()
 
     if cfg.OUTPUT_DIR:
         for idx, dataset_name in enumerate(dataset_names):
@@ -103,6 +103,13 @@ def main():
             mkdir(output_folder)
             output_folders[idx] = output_folder
     data_loaders_val = make_data_loader(cfg=cfg, mode="test", is_distributed=distributed, dataset_to_test=cfg.DATASETS.TO_TEST)
+    # Just for building VGStats
+    make_data_loader(
+        cfg,
+        mode='train',
+        is_distributed=distributed,
+        start_iter=0,
+    )
     for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
         inference(
             cfg,
