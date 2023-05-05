@@ -20,6 +20,7 @@ if [ -d "$MODEL_DIRPATH" ]; then
           DTYPE "float32" \
           GLOVE_DIR ${DATASETS_DIR}/glove \
           MODEL.PRETRAINED_DETECTOR_CKPT ${PROJECT_DIR}/checkpoints/pretrained_faster_rcnn/model_final.pth \
+          MODEL.PRETRAINED_MODEL_CKPT ${MODEL_DIRPATH}/model_${ITERATION}.pth \
           MODEL.WEIGHT ${MODEL_DIRPATH}/model_${ITERATION}.pth \
           OUTPUT_DIR ./checkpoints/${MODEL_NAME} \
           TEST.ALLOW_LOAD_FROM_CACHE False \
