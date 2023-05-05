@@ -3,6 +3,7 @@
 export PROJECT_DIR=/localtmp/pct4et/relaug
 export MODEL_NAME="2023-04-10011025_transformer_none_none_predcls_2GPU_lab1_0.016_0016000_bpl_sa_semantic_visual"
 ITERATION=00012000
+export SEED=1234
 MODEL_DIRPATH=${PROJECT_DIR}/checkpoints/${MODEL_NAME}/
 export LOGDIR=${PROJECT_DIR}/log
 if [ -d "$MODEL_DIRPATH" ]; then

@@ -5,6 +5,7 @@ from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:sk
 
 import argparse
 import os
+from os import environ as os_environ
 import torch
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader, VGStats
@@ -14,7 +15,7 @@ from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.collect_env import collect_env_info
 from maskrcnn_benchmark.utils.comm import synchronize, get_rank
 from maskrcnn_benchmark.utils.logger import setup_logger
-from maskrcnn_benchmark.utils.miscellaneous import mkdir
+from maskrcnn_benchmark.utils.miscellaneous import mkdir, setup_seed
 
 
 def main():
@@ -117,5 +118,6 @@ def main():
 
 
 if __name__ == "__main__":
+    setup_seed(int(os_environ['SEED']))
     main()
     torch.cuda.empty_cache()

@@ -29,7 +29,7 @@ from maskrcnn_benchmark.utils.collect_env import collect_env_info
 from maskrcnn_benchmark.utils.comm import synchronize, get_rank, all_gather
 from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.logger import setup_logger, debug_print
-from maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config
+from maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config, setup_seed
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 from maskrcnn_benchmark.utils.relation_augmentation import RelationAugmenter
 import numpy as np
@@ -45,13 +45,6 @@ except ImportError:
 
 PRED_STR = 'roi_heads.relation.predictor'
 
-
-def setup_seed(seed):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.backends.cudnn.deterministic = True
 
 def train(cfg, local_rank, distributed, logger):
     debug_print(logger, 'prepare training')
