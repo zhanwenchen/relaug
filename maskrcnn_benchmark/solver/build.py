@@ -1,10 +1,28 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
+from math import sqrt
 import torch
 
 from .lr_scheduler import WarmupMultiStepLR, WarmupReduceLROnPlateau
 
 
-def make_optimizer(cfg, model, logger, slow_heads=None, slow_ratio=5.0):
+MAX_LR: float = 1e-1
+LR_FACTOR_DEFAULT: float = 1.0
+
+
+def scale_lr(lr: float, batch_size: int, strategy: str, lr_factor: int=LR_FACTOR_DEFAULT) -> float:
+    if strategy == 'linear':
+        lr_scaled = lr_factor * batch_size * lr
+    elif strategy == 'sqrt':
+        lr_scaled = lr_factor * sqrt(batch_size) * lr
+    else:
+        raise ValueError(f"Invalid lr strategy {strategy}")
+    if lr_scaled > MAX_LR:
+        print(f'scale_lr: lr_scaled={lr_scaled} > MAX_LR={MAX_LR}')
+        return MAX_LR
+    return lr_scaled
+
+
+def make_optimizer(cfg, model, logger, batch_size, slow_heads=None, slow_ratio=5.0):
     params = []
     for key, value in model.named_parameters():
         if not value.requires_grad:
@@ -20,7 +38,7 @@ def make_optimizer(cfg, model, logger, slow_heads=None, slow_ratio=5.0):
                     logger.info("SLOW HEADS: {} is slow down by ratio of {}.".format(key, str(slow_ratio)))
                     lr = lr / slow_ratio
                     break
-        params += [{"params": [value], "lr": lr, "weight_decay": weight_decay}]
+        params += [{"params": [value], "lr": scale_lr(lr, batch_size, 'linear'), "weight_decay": weight_decay}]
 
     optimizer = torch.optim.SGD(params, lr=cfg.SOLVER.BASE_LR, momentum=cfg.SOLVER.MOMENTUM)
     return optimizer
@@ -36,7 +54,7 @@ def make_lr_scheduler(cfg, optimizer, logger=None):
             warmup_iters=cfg.SOLVER.WARMUP_ITERS,
             warmup_method=cfg.SOLVER.WARMUP_METHOD,
         )
-
+    
     elif cfg.SOLVER.SCHEDULE.TYPE == "WarmupReduceLROnPlateau":
         return WarmupReduceLROnPlateau(
             optimizer,
@@ -49,6 +67,6 @@ def make_lr_scheduler(cfg, optimizer, logger=None):
             cooldown=cfg.SOLVER.SCHEDULE.COOLDOWN,
             logger=logger,
         )
-
+    
     else:
         raise ValueError("Invalid Schedule Type")
