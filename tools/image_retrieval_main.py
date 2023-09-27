@@ -88,7 +88,8 @@ def train(cfg, local_rank, distributed, logger):
     model.to(device)
 
     num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
-    optimizer = make_optimizer(cfg, model, logger)
+    num_batch = cfg.SOLVER.IMS_PER_BATCH
+    optimizer = make_optimizer(cfg, model, logger, rl_factor=float(num_batch))
     scheduler = make_lr_scheduler(cfg, optimizer, logger)
     debug_print(logger, 'end optimizer and shcedule')
     # Initialize mixed-precision training
@@ -201,7 +202,7 @@ def train(cfg, local_rank, distributed, logger):
             end = time.time()
 
         logger.info("epoch: {epoch} loss: {loss:.6f} lr: {lr:.6f}".format(epoch=epoch, loss=float(sum(epoch_loss) / len(epoch_loss)), lr=optimizer.param_groups[-1]["lr"]))
-
+        
         if epoch % checkpoint_period == 0:
             save_path = os.path.join(cfg.OUTPUT_DIR, "model_{}.pytorch".format(str(epoch)))
             logger.info(f"Saving model {save_path}")
@@ -221,10 +222,10 @@ def train(cfg, local_rank, distributed, logger):
             val_result = run_test(cfg, model, val_data_loader, distributed, logger)
             val_similarity = evaluator(logger, val_result)
             torch.save({'result' : val_result, 'similarity' : val_similarity}, output_path % ('val', epoch))
+        
 
 
-
-
+    
     total_training_time = time.time() - start_training_time
     total_time_str = str(datetime.timedelta(seconds=total_training_time))
     logger.info(

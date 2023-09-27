@@ -42,7 +42,7 @@ def train(cfg, local_rank, distributed, logger):
     device = torch.device(cfg.MODEL.DEVICE)
     model.to(device)
 
-    optimizer = make_optimizer(cfg, model, logger)
+    optimizer = make_optimizer(cfg, model, logger, rl_factor=float(cfg.SOLVER.IMS_PER_BATCH))
     scheduler = make_lr_scheduler(cfg, optimizer)
 
     # Initialize mixed-precision training
@@ -95,7 +95,7 @@ def train(cfg, local_rank, distributed, logger):
     end = time.time()
     for iteration, (images, targets, _) in enumerate(train_data_loader, start_iter):
         model.train()
-
+        
         if any(len(target) < 1 for target in targets):
             logger.error(f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}" )
         data_time = time.time() - end
@@ -182,7 +182,7 @@ def run_val(cfg, model, val_data_loaders, distributed):
         iou_types = iou_types + ("relations", )
     if cfg.MODEL.ATTRIBUTE_ON:
         iou_types = iou_types + ("attributes", )
-
+        
     dataset_names = cfg.DATASETS.VAL
     for dataset_name, val_data_loader in zip(dataset_names, val_data_loaders):
         inference(
@@ -221,8 +221,8 @@ def run_test(cfg, model, distributed):
             mkdir(output_folder)
             output_folders[idx] = output_folder
     data_loaders_val = make_data_loader(
-        cfg,
-        mode='test',
+        cfg, 
+        mode='test', 
         is_distributed=distributed
         )
     for output_folder, dataset_name, data_loader_val in zip(output_folders, dataset_names, data_loaders_val):
