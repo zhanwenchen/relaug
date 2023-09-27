@@ -89,7 +89,7 @@ def train(cfg, local_rank, distributed, logger):
 
     num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
     num_batch = cfg.SOLVER.IMS_PER_BATCH
-    optimizer = make_optimizer(cfg, model, logger, rl_factor=float(num_batch))
+    optimizer = make_optimizer(cfg, model, logger, num_batch)
     scheduler = make_lr_scheduler(cfg, optimizer, logger)
     debug_print(logger, 'end optimizer and shcedule')
     # Initialize mixed-precision training

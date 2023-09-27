@@ -42,7 +42,7 @@ def train(cfg, local_rank, distributed, logger):
     device = torch.device(cfg.MODEL.DEVICE)
     model.to(device)
 
-    optimizer = make_optimizer(cfg, model, logger, rl_factor=float(cfg.SOLVER.IMS_PER_BATCH))
+    optimizer = make_optimizer(cfg, model, logger, cfg.SOLVER.IMS_PER_BATCH)
     scheduler = make_lr_scheduler(cfg, optimizer)
 
     # Initialize mixed-precision training
