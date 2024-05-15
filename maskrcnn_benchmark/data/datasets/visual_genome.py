@@ -1,7 +1,6 @@
 import os
 from os import environ as os_environ
 from os.path import join as os_path_join
-import sys
 import torch
 from torch import (
     as_tensor as torch_as_tensor,
@@ -56,8 +55,9 @@ class VGDataset(torch.utils.data.Dataset):
         self.dict_file = dict_file
         self.roidb_file = roidb_file
         self.image_file = image_file
-        self.filter_non_overlap = filter_non_overlap and self.split == 'train'
-        self.filter_duplicate_rels = filter_duplicate_rels and self.split == 'train'
+        self.is_train = is_train = split == 'train'
+        self.filter_non_overlap = filter_non_overlap and is_train
+        self.filter_duplicate_rels = filter_duplicate_rels and is_train
         self.transforms = transforms
 
         self.ind_to_classes, self.ind_to_predicates, self.ind_to_attributes = load_info(dict_file) # contiguous 151, 51 containing __background__
@@ -100,8 +100,7 @@ class VGDataset(torch.utils.data.Dataset):
         if img.size[0] != self.img_info[index]['width'] or img.size[1] != self.img_info[index]['height']:
             print('='*20, ' ERROR index ', str(index), ' ', str(img.size), ' ', str(self.img_info[index]['width']), ' ', str(self.img_info[index]['height']), ' ', '='*20)
 
-        flip_img = (random.random() > 0.5) and self.flip_aug and (self.split == 'train')
-
+        flip_img = (random.random() > 0.5) and self.flip_aug and self.is_train
         target = self.get_groundtruth(index, flip_img)
 
         if flip_img:
@@ -261,12 +260,11 @@ class VGDataset(torch.utils.data.Dataset):
 def box_filter(boxes, must_overlap=False):
     """ Only include boxes that overlap as possible relations.
     If no overlapping boxes, use all of them."""
-    n_cands = boxes.shape[0]
-
-    overlaps = bbox_overlaps(boxes.astype(np.float), boxes.astype(np.float), to_move=0) > 0
+    boxes_float = boxes.astype(float)
+    overlaps = bbox_overlaps(boxes_float, boxes_float, to_move=0) > 0
     np.fill_diagonal(overlaps, 0)
 
-    all_possib = np.ones_like(overlaps, dtype=np.bool)
+    all_possib = np.ones_like(overlaps, dtype=bool)
     np.fill_diagonal(all_possib, 0)
 
     if must_overlap:
