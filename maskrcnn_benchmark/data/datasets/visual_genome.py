@@ -1,24 +1,30 @@
+import random
 import os
 from os import environ as os_environ
 from os.path import join as os_path_join
+import json
+from json import load as json_load
+from collections import defaultdict
+from PIL import Image
+from PIL.Image import Transpose
+import h5py
+import numpy as np
+from numpy import array as np_array, int32 as np_int32
 import torch
 from torch import (
     as_tensor as torch_as_tensor,
     int64 as torch_int64,
 )
-import h5py
-import json
-from json import load as json_load
-from PIL import Image
-import numpy as np
-from numpy import array as np_array, int32 as np_int32
-from collections import defaultdict
 from tqdm import tqdm
-import random
-
 from maskrcnn_benchmark.structures.bounding_box import BoxList
-from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+try:
+    from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+except:
+    pass
 
+
+ONE = 1
+FLIP_LEFT_RIGHT = Transpose.FLIP_LEFT_RIGHT
 BOX_SCALE = 1024  # Scale at which we have the boxes
 VG_DIRPATH = os_path_join(os_environ['DATASETS_DIR'], 'visual_genome')
 DICT_FILE_FPATH = os_path_join(VG_DIRPATH, 'VG-SGG-dicts-with-attri-info.json')
@@ -83,17 +89,15 @@ class VGDataset(torch.utils.data.Dataset):
 
         print(f'VGDataset: use_graft={use_graft}')
         self.use_graft = use_graft
-
+        self.flip_aug_and_train = flip_aug and is_train
 
     def __getitem__(self, index):
-        #if self.split == 'train':
-        #    while(random.random() > self.img_info[index]['anti_prop']):
-        #        index = int(random.random() * len(self.filenames))
+        transforms = self.transforms
         if self.custom_eval:
             img = Image.open(self.custom_files[index]).convert("RGB")
             target = torch.LongTensor([-1])
-            if self.transforms is not None:
-                img, target = self.transforms(img, target)
+            if transforms is not None:
+                img, target = transforms(img, target)
             return img, target, index
 
         img = Image.open(self.filenames[index]).convert("RGB")
@@ -104,10 +108,10 @@ class VGDataset(torch.utils.data.Dataset):
         target = self.get_groundtruth(index, flip_img)
 
         if flip_img:
-            img = img.transpose(method=Image.FLIP_LEFT_RIGHT)
+            img = img.transpose(method=FLIP_LEFT_RIGHT)
 
-        if self.transforms is not None:
-            img, target = self.transforms(img, target)
+        if transforms is not None:
+            img, target = transforms(img, target)
 
         return img, target, index
 
@@ -173,7 +177,6 @@ class VGDataset(torch.utils.data.Dataset):
         if self.filter_duplicate_rels:
             # Filter out dupes!
             assert self.split == 'train'
-            old_size = relation.shape[0]
             all_rel_sets = defaultdict(list)
             for (o0, o1, r) in relation:
                 all_rel_sets[(o0, o1)].append(r)

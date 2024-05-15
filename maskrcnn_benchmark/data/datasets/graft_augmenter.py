@@ -27,7 +27,7 @@ names = [
 
 class GraftAugmenterDataset(Dataset):
     def __init__(self, dataset, graft_alpha):
-        from maskrcnn_benchmark.data import VGStats
+        from maskrcnn_benchmark.data.vg_stats import VGStats
         dataset = deepcopy(dataset)
         self.transforms = dataset.transforms
         dataset.transforms = None

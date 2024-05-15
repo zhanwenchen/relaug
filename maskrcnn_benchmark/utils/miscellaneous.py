@@ -7,11 +7,17 @@ from random import seed as random_seed
 import numpy as np
 from numpy.random import seed as np_random_seed
 from torch import manual_seed as torch_manual_seed
-from torch.cuda import manual_seed_all as torch_cuda_manual_seed_all
-from torch.backends import cudnn
+try:
+    from torch.cuda import torch_cuda_manual_seed_all
+    from torch.backends import cudnn
+except:
+    pass
 from .comm import is_main_process
 from maskrcnn_benchmark.structures.bounding_box import BoxList
-from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+try:
+    from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
+except:
+    pass
 
 
 def setup_seed(seed):
@@ -19,7 +25,10 @@ def setup_seed(seed):
     torch_cuda_manual_seed_all(seed)
     np_random_seed(seed)
     random_seed(seed)
-    cudnn.deterministic = True
+    try:
+        cudnn.deterministic = True
+    except:
+        pass
 
 
 def mkdir(path):

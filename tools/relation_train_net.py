@@ -173,9 +173,9 @@ def train(cfg, local_rank, distributed, logger):
         pred_counts = fg_matrix.sum((0,1))
         strategy = cfg.SOLVER.AUGMENTATION.STRATEGY
         bottom_k = cfg.SOLVER.AUGMENTATION.BOTTOM_K
-        num2aug = cfg.SOLVER.AUGMENTATION.NUM2AUG
+        alpha = cfg.SOLVER.AUGMENTATION.ALPHA
         max_batchsize_aug = cfg.SOLVER.AUGMENTATION.MAX_BATCHSIZE_AUG
-        relation_augmenter = RelationAugmenter(pred_counts, bottom_k, strategy, num2aug, max_batchsize_aug, cfg=cfg) # TODO: read strategy from scripts
+        relation_augmenter = RelationAugmenter(pred_counts, bottom_k, strategy, alpha, max_batchsize_aug, cfg=cfg) # TODO: read strategy from scripts
         debug_print(logger, 'end RelationAugmenter')
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 
