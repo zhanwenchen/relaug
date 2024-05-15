@@ -27,20 +27,13 @@ from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 from maskrcnn_benchmark.utils.checkpoint import clip_grad_norm
 from maskrcnn_benchmark.utils.collect_env import collect_env_info
 from maskrcnn_benchmark.utils.comm import synchronize, get_rank, all_gather
-from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.logger import setup_logger, debug_print
 from maskrcnn_benchmark.utils.miscellaneous import mkdir, save_config, setup_seed
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 from maskrcnn_benchmark.utils.relation_augmentation import RelationAugmenter
-import numpy as np
-import random
 
 # See if we can use apex.DistributedDataParallel instead of the torch default,
 # and enable mixed-precision via apex.amp
-try:
-    from apex import amp
-except ImportError:
-    raise ImportError('Use APEX for multi-precision via apex.amp')
 
 
 PRED_STR = 'roi_heads.relation.predictor'
@@ -63,7 +56,10 @@ def train(cfg, local_rank, distributed, logger):
     )
     debug_print(logger, 'end dataloader')
     if cfg.SOLVER.AUGMENTATION.USE_GRAFT is False:
-        statistics = train_data_loader.dataset.get_statistics()
+        try:
+            statistics = train_data_loader.dataset.get_statistics()
+        except:
+            statistics = train_data_loader.dataset.datasets[0].get_statistics()
         vg_stats = VGStats(
             statistics['fg_matrix'],
             statistics['pred_dist'],
@@ -111,7 +107,6 @@ def train(cfg, local_rank, distributed, logger):
     # Initialize mixed-precision training
     use_mixed_precision = cfg.DTYPE == "float16"
     amp_opt_level = 'O1' if use_mixed_precision else 'O0'
-    model, optimizer = amp.initialize(model, optimizer, opt_level=amp_opt_level)
 
     if distributed:
         model = torch.nn.parallel.DistributedDataParallel(
@@ -130,7 +125,7 @@ def train(cfg, local_rank, distributed, logger):
     )
     # if there is certain checkpoint in output_dir, load it, else load pretrained detector
     if checkpointer.has_checkpoint():
-        extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT, 
+        extra_checkpoint_data = checkpointer.load(cfg.MODEL.PRETRAINED_DETECTOR_CKPT,
                                        update_schedule=cfg.SOLVER.UPDATE_SCHEDULE_DURING_LOAD)
         arguments.update(extra_checkpoint_data)
         if arguments["iteration"] != 0:
@@ -141,7 +136,7 @@ def train(cfg, local_rank, distributed, logger):
         # load base model
         if clean_classifier:
             debug_print(logger, 'end load checkpointer')
-            
+
             if predictor == "TransformerPredictor":
                 load_mapping_classifier = {
                     f"{PRED_STR}.rel_compress_clean": f"{PRED_STR}.rel_compress",
@@ -248,11 +243,10 @@ def train(cfg, local_rank, distributed, logger):
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
         meters.update(loss=losses_reduced, **loss_dict_reduced)
 
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
         # Note: If mixed precision is not used, this ends up doing nothing
         # Otherwise apply loss scaling for mixed-precision recipe
-        with amp.scale_loss(losses, optimizer) as scaled_losses:
-            scaled_losses.backward()
+        losses.backward()
         # add clip_grad_norm from MOTIFS, tracking gradient, used for debug
         verbose = (iteration % cfg.SOLVER.PRINT_GRAD_FREQ) == 0 or print_first_grad # print grad or not
         print_first_grad = False

@@ -1,5 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import os
+from pathlib import Path
 import bisect
 import copy
 import logging
@@ -11,6 +12,7 @@ from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.imports import import_file
 from maskrcnn_benchmark.utils.miscellaneous import save_labels
 from maskrcnn_benchmark.data.datasets.graft_augmenter import GraftAugmenterDataset
+from maskrcnn_benchmark.data.datasets.relpainter import RelPainter
 
 from . import datasets as D
 from . import samplers
@@ -58,8 +60,16 @@ def build_dataset(cfg, dataset_list, transforms, dataset_catalog, is_train=True)
     if not is_train:
         return datasets
 
+    dataset = datasets[-1]
+
     if cfg.SOLVER.AUGMENTATION.USE_GRAFT is True:
         datasets.append(GraftAugmenterDataset(dataset, cfg.SOLVER.AUGMENTATION.GRAFT_ALPHA))
+
+    if cfg.SOLVER.AUGMENTATION.USE_RELPAINTER is True:
+        dirpath_aug = Path.home() / 'datasets' / 'visual_genome_sd' / 'VG_100K'
+        converter = RelPainter(dirpath_aug)
+        relpainter_dataset = converter.convert(dataset)
+        datasets.append(relpainter_dataset)
 
     # for training, concatenate all datasets into a single one
     dataset = datasets[0]
