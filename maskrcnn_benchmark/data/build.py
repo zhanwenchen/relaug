@@ -59,7 +59,7 @@ def build_dataset(cfg, dataset_list, transforms, dataset_catalog, is_train=True)
         return datasets
 
     if cfg.SOLVER.AUGMENTATION.USE_GRAFT is True:
-        datasets.append(GraftAugmenterDataset(dataset))
+        datasets.append(GraftAugmenterDataset(dataset, cfg.SOLVER.AUGMENTATION.GRAFT_ALPHA))
 
     # for training, concatenate all datasets into a single one
     dataset = datasets[0]
@@ -213,7 +213,7 @@ def make_data_loader(cfg, mode='train', is_distributed=False, start_iter=0, data
             if not os.path.exists(cfg.DETECTED_SGG_DIR):
                 os.makedirs(cfg.DETECTED_SGG_DIR)
 
-            with open(os.path.join(cfg.DETECTED_SGG_DIR, 'custom_data_info.json'), 'w') as outfile:  
+            with open(os.path.join(cfg.DETECTED_SGG_DIR, 'custom_data_info.json'), 'w') as outfile:
                 json.dump(custom_data_info, outfile)
             print('=====> ' + str(os.path.join(cfg.DETECTED_SGG_DIR, 'custom_data_info.json')) + ' SAVED !')
         data_loaders.append(data_loader)

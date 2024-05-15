@@ -1,34 +1,6 @@
 #!/bin/bash
 
-timestamp() {
-  date +"%Y-%m-%d%H%M%S"
-}
-
-error_exit()
-{
-#   ----------------------------------------------------------------
-#   Function for exit due to fatal program error
-#       Accepts 1 argument:
-#           string containing descriptive error message
-#   Source: http://linuxcommand.org/lc3_wss0140.php
-#   ----------------------------------------------------------------
-    echo "$(timestamp) ERROR ${PROGNAME}: ${1:-"Unknown Error"}" 1>&2
-    echo "$(timestamp) ERROR ${PROGNAME}: Exiting Early."
-    exit 1
-}
-
-get_mode()
-{
-  if [[ ${USE_GT_BOX} == "True" ]] && [[ ${USE_GT_OBJECT_LABEL} == "True" ]]; then
-    echo "predcls"
-  elif [[ ${USE_GT_BOX} == "True" ]] && [[ ${USE_GT_OBJECT_LABEL} == "False" ]]; then
-    echo "sgcls"
-  elif [[ ${USE_GT_BOX} == "False" ]] && [[ ${USE_GT_OBJECT_LABEL} == "False" ]]; then
-    echo "sgdet"
-  else
-    error_exit "Illegal USE_GT_BOX=${USE_GT_BOX} and USE_GT_OBJECT_LABEL=${USE_GT_OBJECT_LABEL} provided."
-  fi
-}
+source ${PROJECT_DIR}/scripts/shared_functions/utils.sh
 
 export TORCH_DISTRIBUTED_DEBUG=INFO
 export TORCHELASTIC_MAX_RESTARTS=0
@@ -57,6 +29,7 @@ torchrun --master_port ${PORT} --nproc_per_node=$NUM_GPUS \
   MODEL.ROI_RELATION_HEAD.WITH_TRANSFER_CLASSIFIER ${WITH_TRANSFER_CLASSIFIER}  \
   SOLVER.AUGMENTATION.USE_SEMANTIC ${USE_SEMANTIC} \
   SOLVER.AUGMENTATION.USE_GRAFT ${USE_GRAFT} \
+  SOLVER.AUGMENTATION.GRAFT_ALPHA ${GRAFT_ALPHA} \
   SOLVER.AUGMENTATION.NUM2AUG ${NUM2AUG} \
   SOLVER.AUGMENTATION.MAX_BATCHSIZE_AUG ${MAX_BATCHSIZE_AUG} \
   SOLVER.AUGMENTATION.STRATEGY ${STRATEGY} \
