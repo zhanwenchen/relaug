@@ -1,13 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
-import torch
 from torch import nn
 from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 from torch.nn.modules.utils import _pair
 
 from maskrcnn_benchmark import _C
-
-from apex import amp
 
 class _ROIAlign(Function):
     @staticmethod
@@ -54,7 +51,6 @@ class ROIAlign(nn.Module):
         self.spatial_scale = spatial_scale
         self.sampling_ratio = sampling_ratio
 
-    @amp.float_function
     def forward(self, input, rois):
         return roi_align(
             input, rois, self.output_size, self.spatial_scale, self.sampling_ratio
