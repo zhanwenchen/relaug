@@ -26,7 +26,7 @@ names = [
 
 
 class GraftAugmenterDataset(Dataset):
-    def __init__(self, dataset):
+    def __init__(self, dataset, graft_alpha):
         from maskrcnn_benchmark.data import VGStats
         dataset = deepcopy(dataset)
         self.transforms = dataset.transforms
@@ -59,6 +59,7 @@ class GraftAugmenterDataset(Dataset):
         self.df_stats_bottom_k = df_stats.query("rel_category_idx.isin(@rels_bottom_k).values")
         self.img_info = [dataset.img_info[i] for i in self.df_stats_bottom_k['example_idx']]
         print('GraftAugmenterDataset.__init__: finished querying for least frequent relations')
+        self.graft_alpha = graft_alpha
 
     def swap(self, idx_og, subj_or_obj):
         '''
@@ -109,7 +110,8 @@ class GraftAugmenterDataset(Dataset):
         roi_new = fromarray(roi_new_np)
         roi_new_resized = resize(roi_new, [gtbox_4_og-gtbox_2_og, gtbox_3_og-gtbox_1_og]) # takes H,W
         roi_new_resized_np = np_asarray(roi_new_resized)
-        img_og_np[gtbox_2_og:gtbox_4_og, gtbox_1_og:gtbox_3_og, :] = np_rint(0.5 * img_og_np[gtbox_2_og:gtbox_4_og, gtbox_1_og:gtbox_3_og, :] + 0.5 * roi_new_resized_np)
+        graft_alpha = self.graft_alpha
+        img_og_np[gtbox_2_og:gtbox_4_og, gtbox_1_og:gtbox_3_og, :] = np_rint((1-graft_alpha) * img_og_np[gtbox_2_og:gtbox_4_og, gtbox_1_og:gtbox_3_og, :] + graft_alpha * roi_new_resized_np)
         img_og_modified = fromarray(img_og_np)
         return img_og_modified, target_og, None # set index to None
 
