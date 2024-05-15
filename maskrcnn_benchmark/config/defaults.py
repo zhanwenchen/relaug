@@ -530,6 +530,7 @@ _C.SOLVER.AUGMENTATION.BOTTOM_K = -1
 _C.SOLVER.AUGMENTATION.USE_SEMANTIC = False
 _C.SOLVER.AUGMENTATION.USE_GRAFT = False
 _C.SOLVER.AUGMENTATION.GRAFT_ALPHA = 0.5
+_C.SOLVER.AUGMENTATION.USE_RELPAINTER = False
 # update schedule
 # when load from a previous model, if set to True
 # only maintain the iteration number and all the other settings of the
