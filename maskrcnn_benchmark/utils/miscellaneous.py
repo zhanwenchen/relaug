@@ -8,7 +8,7 @@ import numpy as np
 from numpy.random import seed as np_random_seed
 from torch import manual_seed as torch_manual_seed
 try:
-    from torch.cuda import torch_cuda_manual_seed_all
+    from torch.cuda import manual_seed_all as torch_cuda_manual_seed_all
     from torch.backends import cudnn
 except:
     pass
