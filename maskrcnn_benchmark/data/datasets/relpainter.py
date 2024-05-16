@@ -1,3 +1,4 @@
+from typing import List
 from os.path import getmtime as os_path_getmtime
 from pathlib import Path
 from copy import deepcopy
@@ -42,7 +43,7 @@ class RelPainter:
             vgdataset.relationships, indices_new_flat)
         return vgdataset
 
-    def map_filenames(self, filenames: list[str]) -> list[list[str]]:
+    def map_filenames(self, filenames: List[str]) -> List[List[str]]:
         list_filenames = []
         list_indices = []
         dirpath_aug = self.dirpath_aug
