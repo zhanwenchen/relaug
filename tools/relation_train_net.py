@@ -11,6 +11,7 @@ from torch import (
 from torch.nn.parallel import DistributedDataParallel
 from torch.distributed import init_process_group
 from torch.cuda import max_memory_allocated, set_device
+from wandb import init as wandb_init
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader, VGStats
 from maskrcnn_benchmark.solver import make_lr_scheduler, make_optimizer
@@ -29,7 +30,8 @@ from maskrcnn_benchmark.utils.relation_augmentation import RelationAugmenter
 PRED_STR = 'roi_heads.relation.predictor'
 
 
-def train(config, local_rank, distributed, logger):
+def train(config, local_rank, distributed, logger, run):
+    is_main = local_rank == 0
     debug_print(logger, 'prepare training')
     arguments = {}
     arguments["iteration"] = 0
@@ -282,10 +284,14 @@ def train(config, local_rank, distributed, logger):
                 logger.info('iteration=%s: Start validating', iteration)
                 result_val = run_val(config, model, val_data_loaders, distributed, logger, dataset_names_val, output_folders_val)
                 logger.info('iteration=%s: Validation Result: %.4f', iteration, result_val)
+                if is_main:
+                    run.log({'mR@50_val': result_val}, iteration)
             if to_test:
                 logger.info('iteration=%s: Start testing', iteration)
                 result_test = run_val(config, model, data_loaders_test, distributed, logger, dataset_names_test, output_folders_test)
                 logger.info('iteration=%s: Test Result: %.4f', iteration, result_test)
+                if is_main:
+                    run.log({'mR@50_test': result_test}, iteration)
 
         # scheduler should be called after optimizer.step() in pytorch>=1.1.0
         # https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
@@ -417,10 +423,28 @@ def main():
 
     output_config_path = os_path_join(output_dir, 'config.yml')
     logger.info('Saving config into: %s', output_config_path)
+
+    if local_rank == 0:
+        run = wandb_init(
+            # set the wandb project where this run will be logged
+            project='relaug',
+            # track hyperparameters and run metadata
+            config={
+                "learning_rate": cfg.SOLVER.BASE_LR,
+                "architecture": cfg.MODEL.ROI_RELATION_HEAD.PREDICTOR,
+                "epochs": cfg.SOLVER.MAX_ITER,
+                "batch_size": cfg.SOLVER.IMS_PER_BATCH,
+            }
+        )
+    else:
+        run = None
     # save overloaded model config in the output directory
     save_config(cfg, output_config_path)
 
-    train(cfg, local_rank, distributed, logger)
+    train(cfg, local_rank, distributed, logger, run)
+
+    if local_rank == 0:
+        run.finish()
 
 
 if __name__ == "__main__":
